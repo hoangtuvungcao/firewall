@@ -55,7 +55,19 @@ graph TD
 
 ---
 
-## 🚀 Bắt đầu nhanh
+## 🚀 Bắt đầu nhanh (Quick Start)
+
+1. **Clone repository:**
+   ```bash
+   git clone https://github.com/hoangtuvungcao/firewall.git /opt/nroshield
+   cd /opt/nroshield
+   ```
+
+2. **Chạy script cài đặt:**
+   ```bash
+   chmod +x firewall/*.sh
+   ./firewall/install.sh
+   ```
 
 Để cài đặt hệ thống từ A-Z, bạn hãy làm theo hướng dẫn chi tiết tại:
 
