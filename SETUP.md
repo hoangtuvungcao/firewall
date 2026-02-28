@@ -6,108 +6,142 @@ Tài liệu này là hướng dẫn **cầm tay chỉ việc từng lệnh một
 
 ---
 
-## 📌 Phần 1: Đăng nhập và Chuẩn bị Hệ thống
+## 📌 Bước 1: Đăng nhập VPS và Chuẩn bị Hệ thống
 
-Đầu tiên, hãy kết nối SSH vào VPS của bạn và chuyển sang quyền cao nhất (`root`):
+Kết nối SSH vào VPS và chuyển sang quyền `root`:
 ```bash
-sudo su
-cd /root
+ssh root@<IP_VPS_CUA_BAN>
 ```
 
-**Bước 1: Cập nhật hệ điều hành và cài đặt các trình biên dịch/công cụ cơ bản**
-*(Copy và dán toàn bộ cụm lệnh này vào terminal)*
+Cập nhật hệ điều hành và cài đặt toàn bộ công cụ cần thiết:
 ```bash
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -y && apt-get upgrade -y
-apt-get install -y curl wget git nano unzip build-essential python3 python3-pip python3-venv python3-dev mariadb-server iptables ipset iptables-persistent net-tools iproute2 nginx
+apt-get install -y curl wget git nano unzip build-essential \
+  python3 python3-pip python3-venv python3-dev \
+  mariadb-server mariadb-client \
+  iptables ipset iptables-persistent netfilter-persistent conntrack \
+  net-tools iproute2 htop iftop vnstat tcpdump nmap jq bc \
+  nginx \
+  fail2ban \
+  software-properties-common apt-transport-https ca-certificates gnupg lsb-release
 ```
 
-**Bước 2: Cài đặt Node.js phiên bản 18**
+Cài đặt Node.js phiên bản 18:
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 apt-get install -y nodejs
-node -v # Kết quả phải báo là v18.x.x
+node -v
+# Kết quả phải báo là v18.x.x
 ```
 
 ---
 
-## 📌 Phần 2: Khởi tạo Cơ sở Dữ liệu
+## 📌 Bước 2: Khởi tạo Cơ sở Dữ liệu (MariaDB)
 
-Chúng ta sẽ tạo thông tin Database an toàn. Bạn có thể bôi đen và copy khối lệnh dưới đây:
+Khởi động MariaDB:
+```bash
+systemctl enable mariadb
+systemctl start mariadb
+```
 
+Tạo Database và User:
 ```bash
 mysql -u root <<EOF
-CREATE DATABASE nroshield CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'nroshield'@'localhost' IDENTIFIED BY 'Matkhau1@#$';
+CREATE DATABASE IF NOT EXISTS nroshield CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS 'nroshield'@'localhost' IDENTIFIED BY 'Matkhau1@#\$';
 GRANT ALL PRIVILEGES ON nroshield.* TO 'nroshield'@'localhost';
 FLUSH PRIVILEGES;
 EOF
 ```
 
+Kiểm tra đã tạo thành công:
+```bash
+mysql -u nroshield -p'Matkhau1@#$' -e "SHOW DATABASES;" | grep nroshield
+# Phải hiện ra dòng "nroshield"
+```
+
 ---
 
-## 📌 Phần 3: Clone Mã Nguồn & Cấu hình
+## 📌 Bước 3: Tải Mã Nguồn về VPS
 
-**Bước 1: Tải mã nguồn về thư mục `/opt/nroshield`**
 ```bash
 rm -rf /opt/nroshield
 git clone https://github.com/hoangtuvungcao/firewall.git /opt/nroshield
 cd /opt/nroshield
 ```
 
-**Bước 2: Tự động tạo file `.env` (Chỉnh sửa chuỗi Token sau)**
-Chạy khối lệnh sau để tạo file cấu hình. 
-*(Lưu ý: Đừng quên cập nhật lại `TELEGRAM_BOT_TOKEN` và `TELEGRAM_CHAT_ID` bằng cách gõ `nano /opt/nroshield/.env` sau khi chạy lệnh này).*
+---
+
+## 📌 Bước 4: Cấu hình File `.env` (Rất Quan Trọng)
+
+File `.env` chứa toàn bộ cấu hình hệ thống. Tạo file `.env` từ mẫu `.env.example`:
 
 ```bash
-cat <<EOF > /opt/nroshield/.env
-# Database
-DB_HOST=127.0.0.1
-DB_USER=nroshield
-DB_PASS=Matkhau1@#$
-DB_NAME=nroshield
-
-# JWT Auth
-JWT_SECRET=KhoaBiMatNroShield_ThayDoiNeuCan
-JWT_EXPIRES_IN=24h
-
-# Ports
-API_PORT=5000
-AI_ENGINE_PORT=8000
-
-# Telegram Bot (THAY ĐỔI 2 DÒNG NÀY TRƯỚC KHI CHẠY BOT)
-TELEGRAM_BOT_TOKEN=123456789:ABCDEF-GHIJKL-Bot-Token-Cua-Ban
-TELEGRAM_CHAT_ID=000000000
-EOF
-```
-
-**Mở file lên để điền Token Telegram của bạn:**
-```bash
+cp /opt/nroshield/.env.example /opt/nroshield/.env
 nano /opt/nroshield/.env
 ```
-*(Điền xong bấm `Ctrl + X`, sau đó phím `Y`, và `Enter` để lưu lại).*
+
+Trong file `.env`, bạn **BẮT BUỘC** phải sửa các dòng sau:
+
+| Biến | Ý nghĩa | Ví dụ |
+|------|---------|-------|
+| `VPS_PUBLIC_IP` | IP công khai của VPS (BẮT BUỘC) | `103.77.246.157` |
+| `DB_PASS` | Mật khẩu database đã tạo ở Bước 2 | `Matkhau1@#$` |
+| `JWT_SECRET` | Chuỗi bí mật để mã hóa token đăng nhập | `ChuoiBiMat123!@#` |
+| `TELEGRAM_BOT_TOKEN` | Token từ `@BotFather` trên Telegram | `7123456:AAF...` |
+| `TELEGRAM_CHAT_ID` | Chat ID nhận thông báo (lấy từ `@userinfobot`) | `123456789` |
+| `SSH_PORT` | Port SSH của VPS (mặc định `22`, nên đổi `2222`) | `2222` |
+
+Các biến khác có thể giữ giá trị mặc định:
+
+| Biến | Mặc định | Ý nghĩa |
+|------|----------|---------|
+| `API_PORT` | `5000` | Port API Backend |
+| `WEB_PORT` | `3000` | Port Web Panel |
+| `AI_ENGINE_PORT` | `8000` | Port AI Engine |
+| `PROXY_PORT_RANGE_START` | `30000` | Port bắt đầu cho proxy shield |
+| `PROXY_PORT_RANGE_END` | `60000` | Port kết thúc cho proxy shield |
+| `MAX_CONN_PER_IP` | `50` | Số kết nối tối đa mỗi IP |
+| `SYN_RATE_LIMIT` | `200/sec` | Giới hạn SYN per IP |
+| `UDP_RATE_LIMIT` | `100/sec` | Giới hạn UDP per IP |
+| `AI_LEARNING_DAYS` | `7` | Số ngày AI học trước khi tự động chặn |
+| `AI_BLOCK_THRESHOLD` | `0.8` | Ngưỡng anomaly để auto-block IP |
+| `AI_RATE_LIMIT_THRESHOLD` | `0.6` | Ngưỡng anomaly để rate-limit IP |
+
+Sau khi sửa xong, bấm `Ctrl + X` → `Y` → `Enter` để lưu.
 
 ---
 
-## 📌 Phần 4: Biên dịch và Cài đặt Libraries
+## 📌 Bước 5: Cài đặt Libraries cho từng Module
 
-Chạy lần lượt 3 mục bên dưới:
-
-**1. Cài đặt Backend API & Import Database Mẫu:**
+### 5.1. Backend API (Node.js)
 ```bash
 cd /opt/nroshield/backend
 npm install
+```
+
+### 5.2. Khởi tạo Bảng Database
+```bash
 node database/migrate.js
 ```
-*(Lệnh migrate.js sẽ hiện chữ `✅ users`, `✅ servers`... là thành công)*
+Kết quả đúng sẽ hiện:
+```
+✅ users
+✅ servers
+✅ proxy_ports
+✅ license_keys
+✅ attack_logs
+...
+```
 
-**2. Cài đặt Bot Telegram:**
+### 5.3. Telegram Bot (Node.js)
 ```bash
 cd /opt/nroshield/telegram_bot
 npm install
 ```
 
-**3. Cài đặt AI Engine (Python):**
+### 5.4. AI Engine (Python)
 ```bash
 cd /opt/nroshield/ai_engine
 python3 -m venv venv
@@ -118,59 +152,76 @@ deactivate
 
 ---
 
-## 📌 Phần 5: Thiết lập Firewall Cấp Cao (Thư mục `firewall/`)
+## 📌 Bước 6: Thiết lập Firewall & Hardening (Thư mục `firewall/`)
 
-Dự án có cung cấp sẵn một bộ scripts chuyên sâu để tự động cài đặt và tối ưu hóa hệ thống phòng thủ bên trong thư mục `firewall`. Thay vì gõ toàn bộ lệnh iptables thủ công ở trên, bạn **BẮT BUỘC** phải chạy các script này để hệ thống đạt sức mạnh lớn nhất!
+Thư mục `firewall/` chứa **9 scripts** bảo mật tự động. Dưới đây là danh sách đầy đủ và thứ tự chạy:
 
-Mở thư mục chứa các script tường lửa và cấp quyền thực thi:
 ```bash
 cd /opt/nroshield/firewall
 chmod +x *.sh
 ```
 
-Tiếp theo, hãy chạy **lần lượt từng file một** theo thứ tự dưới đây. Script sẽ tự động gọi tiếp file đằng sau nếu thành công:
-
-**1. Cài đặt các gói phụ trợ Firewall (Fail2Ban, CrowdSec):**
+### 6.1. Cài đặt Dependencies cho Firewall
+Cài tất cả packages bảo mật (iptables, ipset, Fail2Ban, CrowdSec, hping3, GeoIP...):
 ```bash
 ./install.sh
 ```
+*(Kết quả: Khi thấy `CÀI ĐẶT HOÀN TẤT!` là thành công)*
 
-**2. Tối ưu hóa Kernel (Sysctl Hardening) để chống TCP SYN Flood:**
+### 6.2. Tăng cường Nhân Linux (Kernel Hardening)
+Tối ưu TCP stack để chống SYN Flood, tăng conntrack, tắt IPv6:
 ```bash
 ./sysctl_hardening.sh
 ```
+*(Kết quả: Hiện bảng kiểm tra SYN Cookies, SYN Backlog, IP Forward...)*
 
-**3. Thiết lập luật tường lửa gốc (Base Firewall Rules / NAT):**
+### 6.3. Thiết lập Luật Tường lửa Gốc (IPTables + NAT)
+Tạo ipset blacklist/whitelist, thiết lập INPUT DROP, NAT MASQUERADE, chống port scan:
 ```bash
 ./iptables_base.sh
 ```
+*(Kết quả: Hiện số lượng rules đã tạo)*
 
-**4. Thiết lập bộ quy tắc chống DDoS (Drop Invalid/Frags):**
+### 6.4. Thiết lập Anti-DDoS
+Rate-limit SYN/UDP/ICMP, chặn HTTP slowloris, connection flood:
 ```bash
 ./anti_ddos.sh
 ```
 
-**5. Import danh sách IP Botnet bị cấm:**
+### 6.5. Chặn danh sách IP Botnet quốc tế
+Tải và import blacklist IP từ các tổ chức bảo mật (Spamhaus, Firehol...):
 ```bash
 ./anti_botnet.sh
 ```
 
-**6. Cấu hình Fail2Ban & CrowdSec (Phát hiện IP dò pass):**
+### 6.6. Cấu hình Fail2Ban (Chặn dò mật khẩu SSH)
 ```bash
 ./fail2ban_setup.sh
+```
+
+### 6.7. Cấu hình CrowdSec (Phát hiện tấn công cộng đồng)
+```bash
 ./crowdsec_setup.sh
 ```
 
-*(Lưu ý: Bạn không cần làm bước IP Forwarding và Iptables thủ công ở bản SETUP cũ nữa vì nhóm script này đã cấu hình sạch sẽ và tối ưu 10.000 lần cho bạn!)*
+### 6.8. Giám sát Traffic tự động (Traffic Monitor)
+Script `traffic_monitor.sh` chạy tự động mỗi phút bởi systemd timer (được cài trong `deploy.sh`). Không cần chạy thủ công.
+
+### 6.9. Xóa tất cả quy tắc (Clean Rules) — Chỉ dùng khi cần Reset
+Nếu muốn xóa hết toàn bộ iptables rules để bắt đầu lại:
+```bash
+./clean_rules.sh
+```
+⚠️ **CẢNH BÁO:** Lệnh này sẽ xóa sạch tường lửa. Chỉ chạy khi cần debug.
 
 ---
 
-## 📌 Phần 6: Cấu hình Web Server (Nginx)
+## 📌 Bước 7: Cấu hình Nginx (Web Server)
 
-Nginx sẽ đóng vai trò hiển thị giao diện và làm cổng nối Proxy. Copy nguyên khối lệnh này dán vào Terminal để tự động tạo file config Nginx:
+Copy khối lệnh sau để tạo file config Nginx:
 
 ```bash
-cat <<'EOF' > /etc/nginx/sites-available/default
+cat <<'NGINX_EOF' > /etc/nginx/sites-available/default
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
@@ -179,7 +230,7 @@ server {
     root /opt/nroshield/web;
     index index.html;
 
-    # Frontend
+    # Frontend Dashboard
     location / {
         try_files $uri $uri/ /index.html;
     }
@@ -197,7 +248,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # API Websocket (Biểu đồ Realtime)
+    # WebSocket (Biểu đồ Realtime)
     location /ws {
         proxy_pass http://127.0.0.1:5000/ws;
         proxy_http_version 1.1;
@@ -214,138 +265,192 @@ server {
         proxy_set_header Host $host;
     }
 }
-EOF
+NGINX_EOF
 ```
 
-Khởi động lại Nginx:
+Kiểm tra và khởi động lại Nginx:
 ```bash
 ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 nginx -t
+# Phải hiện "syntax is ok" và "test is successful"
 systemctl restart nginx
+systemctl enable nginx
 ```
 
 ---
 
-## 📌 Phần 7: Kích hoạt 3 Services Chạy Ngầm
+## 📌 Bước 8: Tạo Systemd Services (Chạy ngầm tự động)
 
-Tự động tạo các file systemd thay vì gõ thủ công:
+Dự án đã có sẵn các file service trong thư mục `services/`. Copy chúng trực tiếp:
 
-**1. Service API:**
 ```bash
-cat <<'EOF' > /etc/systemd/system/nroshield-api.service
-[Unit]
-Description=NRO Shield API Backend
-After=network.target mariadb.service
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=/opt/nroshield/backend
-ExecStart=/usr/bin/node server.js
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-EOF
+cp /opt/nroshield/services/nroshield-api.service /etc/systemd/system/
+cp /opt/nroshield/services/nroshield-bot.service /etc/systemd/system/
+cp /opt/nroshield/services/nroshield-ai.service /etc/systemd/system/
 ```
 
-**2. Service Telegram Bot:**
-```bash
-cat <<'EOF' > /etc/systemd/system/nroshield-bot.service
-[Unit]
-Description=NRO Shield Telegram Bot
-After=network.target nroshield-api.service
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=/opt/nroshield/telegram_bot
-ExecStart=/usr/bin/node bot.js
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-EOF
-```
-
-**3. Service AI Engine:**
-```bash
-cat <<'EOF' > /etc/systemd/system/nroshield-ai.service
-[Unit]
-Description=NRO Shield AI Engine
-After=network.target
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=/opt/nroshield/ai_engine
-Environment=PATH=/opt/nroshield/ai_engine/venv/bin:$PATH
-ExecStart=/opt/nroshield/ai_engine/venv/bin/python main.py
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-EOF
-```
-
-**Kích hoạt và chạy toàn bộ:**
+Kích hoạt và chạy toàn bộ:
 ```bash
 systemctl daemon-reload
 systemctl enable nroshield-api nroshield-bot nroshield-ai
 systemctl restart nroshield-api nroshield-bot nroshield-ai
 ```
 
-Dùng lệnh này để kiểm tra xem cả 3 hệ thống đang báo xanh hay đỏ (nếu đều Active là chạy hoàn hảo):
+Kiểm tra trạng thái (Phải hiện **Active: active (running)** cho cả 3):
 ```bash
-systemctl status nroshield-api nroshield-bot nroshield-ai --no-pager
+systemctl status nroshield-api --no-pager
+systemctl status nroshield-bot --no-pager
+systemctl status nroshield-ai --no-pager
+```
+
+Nếu dịch vụ nào báo lỗi, xem log chi tiết:
+```bash
+journalctl -u nroshield-api -n 30 --no-pager
+journalctl -u nroshield-bot -n 30 --no-pager
+journalctl -u nroshield-ai -n 30 --no-pager
 ```
 
 ---
 
-## 🎉 Phần 8: Cấp Quyền & Đăng Nhập
+## 📌 Bước 9: Tạo Thư mục Log & Logrotate
 
-Khởi tạo **1 License Key** quyền lực vô hạn để bạn bắt đầu tạo tài khoản. Copy lệnh này:
+```bash
+mkdir -p /var/log/nroshield/{attacks,traffic,ai}
+chmod 750 /var/log/nroshield
+```
+
+Cấu hình Log tự động xoay vòng (giữ 7 ngày):
+```bash
+cat <<'EOF' > /etc/logrotate.d/nroshield
+/var/log/nroshield/*.log
+/var/log/nroshield/**/*.log {
+    daily
+    missingok
+    rotate 7
+    compress
+    delaycompress
+    notifempty
+    create 640 root root
+    sharedscripts
+}
+EOF
+```
+
+---
+
+## 📌 Bước 10: Tạo License Key Admin & Đăng Nhập
+
+Tạo 1 License Key quyền lực vô hạn:
 ```bash
 mysql -u nroshield -p'Matkhau1@#$' nroshield -e "INSERT INTO license_keys (key_code, max_servers, max_ports_per_server, max_bandwidth_mbps) VALUES ('ADMIN-123456', 99, 99, 9999);"
 ```
 
-Mọi thứ đã sẵn sàng 100%. Cách sử dụng:
-1. Mở trình duyệt, truy cập địa chỉ IP của VPS: `http://<IP_VPS_CUA_BAN>/`
-2. Mở Telegram, chat với Bot, chọn `/start` và gõ lệnh `/login` » Sau đó đăng ký tài khoản mới kèm mã Key là `ADMIN-123456`.
-3. Bạn đã chính thức là Admin vĩnh viễn hệ thống NRO Shield.
-
-Nếu trong quá trình có lỗi, gõ các lệnh sau để check:
-- Log API: `journalctl -u nroshield-api -n 50 -f`
-- Log Bot: `journalctl -u nroshield-bot -n 50 -f`
-- Log AI: `journalctl -u nroshield-ai -n 50 -f`
+Kiểm tra Key đã tạo thành công:
+```bash
+mysql -u nroshield -p'Matkhau1@#$' nroshield -e "SELECT * FROM license_keys;"
+```
 
 ---
 
-## 🚀 Phần 9: Các Script Hỗ Trợ Có Sẵn (Tùy Chọn)
+## 🎉 Bước 11: Kiểm tra & Sử dụng
 
-Trong thư mục gốc của dự án (`/opt/nroshield`) đã tích hợp sẵn một số script giúp bạn quản trị hệ thống nhanh chóng hơn mà không cần nhớ lệnh phức tạp.
+### 11.1. Mở Web Dashboard
+Truy cập trình duyệt: `http://<IP_VPS_CUA_BAN>/`
+→ Đăng ký tài khoản mới với mã Key `ADMIN-123456`
 
-Đầu tiên, hãy cấp quyền thực thi cho tất cả script:
+### 11.2. Sử dụng Telegram Bot
+1. Mở Telegram, tìm Bot bạn đã tạo
+2. Gõ `/start` → `/login`
+3. Đăng nhập bằng tài khoản đã tạo ở trên
+
+### 11.3. Kiểm tra sức khỏe toàn hệ thống
 ```bash
 cd /opt/nroshield
 chmod +x *.sh
-```
-
-### 1. Script Kiểm tra Sức khỏe Hệ thống (`master_check.sh`)
-Kiểm tra nhanh toàn bộ trạng thái của Nginx, API, Bot, AI Engine, Database, và Network NAT:
-```bash
 ./master_check.sh
 ```
 
-### 2. Script Cập nhật Mã Nguồn (`deploy.sh`)
-Khi mã nguồn trên kho GitHub có bản cập nhật mới (fix lỗi hoặc thêm tính năng), bạn không cần cài lại từ đầu. Chỉ cần chạy script này, nó sẽ tự động `git pull`, cài thư viện mới và khởi động lại toàn bộ:
+---
+
+## 🚀 Phụ lục: Cách Nhanh nhất — Cài 1 lệnh duy nhất (deploy.sh)
+
+Nếu bạn **KHÔNG MUỐN** làm thủ công từng bước ở trên, dự án đã có script `deploy.sh` tự động hóa toàn bộ phần Firewall (Bước 6). Chỉ cần đảm bảo đã hoàn thành Bước 1-5 và Bước 7, sau đó chạy:
+
 ```bash
+cd /opt/nroshield
+chmod +x deploy.sh
 ./deploy.sh
 ```
 
-### 3. Script Dọn dẹp Log định kỳ (`cleanup_logs.sh`)
-Theo thời gian, bảng `attack_logs` và `ai_traffic_snapshots` trong Database sẽ phình to. Nếu ổ cứng VPS bị đầy, chạy lệnh này để dọn dẹp log cũ hơn 30 ngày:
+Script này sẽ tự động:
+- Chạy tất cả 6 script firewall (`install.sh` → `crowdsec_setup.sh`)
+- Tạo systemd timer cho traffic monitor (chạy mỗi phút)
+- Cấu hình logrotate
+- Hiện báo cáo tổng kết
+
+---
+
+## 📋 Phụ lục: Các Script Tiện Ích
+
+| Script | Công dụng | Lệnh |
+|--------|----------|------|
+| `master_check.sh` | Kiểm tra trạng thái toàn bộ hệ thống | `./master_check.sh` |
+| `deploy.sh` | Cài đặt/cập nhật toàn bộ Firewall | `./deploy.sh` |
+| `cleanup_logs.sh` | Xóa log cũ hơn 30 ngày trong DB | `./cleanup_logs.sh` |
+| `firewall/clean_rules.sh` | Xóa hết IPtables rules (Reset) | `./firewall/clean_rules.sh` |
+| `firewall/traffic_monitor.sh` | Thu thập traffic metrics (tự động) | Chạy bởi systemd timer |
+
+---
+
+## ❓ Xử lý Lỗi Thường Gặp
+
+### Lỗi: Bot báo "TELEGRAM_BOT_TOKEN chưa cấu hình"
 ```bash
-./cleanup_logs.sh
+nano /opt/nroshield/.env
+# Sửa dòng TELEGRAM_BOT_TOKEN và TELEGRAM_CHAT_ID
+systemctl restart nroshield-bot
 ```
-*(Bạn cũng có thể cài Crontab định kỳ chạy tự động script này mỗi tháng 1 lần).*
+
+### Lỗi: API báo "ECONNREFUSED" khi kết nối Database
+```bash
+systemctl status mariadb
+# Nếu không chạy:
+systemctl start mariadb
+systemctl restart nroshield-api
+```
+
+### Lỗi: Nginx báo "502 Bad Gateway"
+API Backend chưa chạy. Kiểm tra:
+```bash
+systemctl status nroshield-api
+journalctl -u nroshield-api -n 20 --no-pager
+systemctl restart nroshield-api
+```
+
+### Lỗi: Proxy Port không forward được
+IP Forwarding chưa bật:
+```bash
+sysctl net.ipv4.ip_forward
+# Nếu = 0, chạy:
+echo "net.ipv4.ip_forward = 1" > /etc/sysctl.d/99-ipforward.conf
+sysctl -p /etc/sysctl.d/99-ipforward.conf
+```
+
+### Lỗi: AI Engine không chạy
+```bash
+journalctl -u nroshield-ai -n 20 --no-pager
+# Nếu thiếu thư viện Python:
+cd /opt/nroshield/ai_engine
+source venv/bin/activate
+pip install -r requirements.txt
+deactivate
+systemctl restart nroshield-ai
+```
+
+### Lỗi: CrowdSec chưa cài
+```bash
+curl -s https://packagecloud.io/install/repositories/crowdsec/crowdsec/script.deb.sh | bash
+apt-get install -y crowdsec crowdsec-firewall-bouncer-iptables
+systemctl enable crowdsec
+systemctl start crowdsec
+```
