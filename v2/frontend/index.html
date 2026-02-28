@@ -69,6 +69,55 @@
                 </div>
             </section>
 
+            <!-- SA:MP & Server Controls -->
+            <div class="grid-2" style="margin-bottom: 2rem;">
+                <!-- SA:MP Status Card -->
+                <section class="chart-card animate-fade" style="animation-delay: 0.1s;">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <h3><i class="fas fa-gamepad"></i> SA:MP Server Status</h3>
+                        <span id="samp-badge" class="badge offline">OFFLINE</span>
+                    </div>
+                    <div class="samp-details" style="margin-top: 1.5rem;">
+                        <div class="detail-row">
+                            <span class="label">Hostname:</span>
+                            <span id="samp-hostname" class="value">N/A</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Players:</span>
+                            <span id="samp-players" class="value">0 / 0</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Gamemode:</span>
+                            <span id="samp-gamemode" class="value">N/A</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Map:</span>
+                            <span id="samp-map" class="value">N/A</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- System Controls -->
+                <section class="chart-card animate-fade" style="animation-delay: 0.2s;">
+                    <h3><i class="fas fa-tools"></i> Management Actions</h3>
+                    <div class="control-grid"
+                        style="margin-top: 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <button class="btn-control action-start" onclick="serverAction('start')">
+                            <i class="fas fa-play"></i> Start Server
+                        </button>
+                        <button class="btn-control action-stop" onclick="serverAction('stop')">
+                            <i class="fas fa-stop"></i> Stop Server
+                        </button>
+                        <button class="btn-control action-restart" onclick="serverAction('restart')">
+                            <i class="fas fa-sync"></i> Restart Game
+                        </button>
+                        <button class="btn-control action-flush" onclick="serverAction('flush_iptables')">
+                            <i class="fas fa-broom"></i> Flush IPSet
+                        </button>
+                    </div>
+                </section>
+            </div>
+
             <!-- Geofencing Control Panel -->
             <section class="chart-card animate-fade"
                 style="margin-bottom: 2rem; animation-delay: 0.15s; border-left: 4px solid var(--primary);">
@@ -100,43 +149,35 @@
             <section class="charts-area animate-fade" style="animation-delay: 0.2s;">
                 <div class="chart-card">
                     <h3>Network Throughput (PPS)</h3>
-                    <div style="height: 300px; margin-top: 1rem;">
-                        <canvas id="trafficChart"></canvas>
-                    </div>
                 </div>
-                <div class="chart-card">
-                    <h3>Protocol Distribution</h3>
-                    <div style="height: 300px; margin-top: 1rem;">
-                        <canvas id="protocolChart"></canvas>
-                    </div>
-                </div>
-            </section>
+    </div>
+    </section>
 
-            <!-- Recent Incidents -->
-            <section class="table-card animate-fade" style="animation-delay: 0.3s;">
-                <h3>Recent Security Actions</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Timestamp</th>
-                            <th>Source IP</th>
-                            <th>Action</th>
-                            <th>Reason</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="incidents-body">
-                        <tr>
-                            <td>2026-02-28 14:30:05</td>
-                            <td>14.233.217.88</td>
-                            <td>Blacklisted</td>
-                            <td>RakNet Handshake Flood</td>
-                            <td><span class="status-pill blocked">Blocked</span></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </section>
-        </main>
+    <!-- Recent Incidents -->
+    <section class="table-card animate-fade" style="animation-delay: 0.3s;">
+        <h3>Recent Security Actions</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Source IP</th>
+                    <th>Action</th>
+                    <th>Reason</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="incidents-body">
+                <tr>
+                    <td>2026-02-28 14:30:05</td>
+                    <td>14.233.217.88</td>
+                    <td>Blacklisted</td>
+                    <td>RakNet Handshake Flood</td>
+                    <td><span class="status-pill blocked">Blocked</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+    </main>
     </div>
 
     <script src="app.js"></script>

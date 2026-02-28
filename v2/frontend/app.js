@@ -3,28 +3,53 @@
  */
 
 // Chart Initialization
+let trafficChart, systemChart;
+const trafficData = {
+    labels: Array(20).fill(''),
+    datasets: [{
+        label: 'Packets Per Second',
+        data: Array(20).fill(0),
+        borderColor: '#00f2fe',
+        backgroundColor: 'rgba(0, 242, 254, 0.1)',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 0
+    }]
+};
+const systemData = {
+    labels: Array(20).fill(''),
+    datasets: [
+        { label: 'CPU %', data: Array(20).fill(0), borderColor: '#f43f5e', tension: 0.4, fill: true, backgroundColor: 'rgba(244, 63, 94, 0.1)', pointRadius: 0 },
+        { label: 'RAM %', data: Array(20).fill(0), borderColor: '#22c55e', tension: 0.4, fill: true, backgroundColor: 'rgba(34, 197, 94, 0.1)', pointRadius: 0 }
+    ]
+};
+
 const ctx = document.getElementById('trafficChart').getContext('2d');
-const trafficChart = new Chart(ctx, {
+trafficChart = new Chart(ctx, {
     type: 'line',
-    data: {
-        labels: Array(20).fill(''),
-        datasets: [{
-            label: 'Packets Per Second',
-            data: Array(20).fill(0),
-            borderColor: '#00f2fe',
-            backgroundColor: 'rgba(0, 242, 254, 0.1)',
-            borderWidth: 2,
-            fill: true,
-            tension: 0.4,
-            pointRadius: 0
-        }]
-    },
+    data: trafficData,
     options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
             y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+            x: { grid: { display: false }, ticks: { display: false } }
+        }
+    }
+});
+
+const systemCtx = document.getElementById('systemChart').getContext('2d');
+systemChart = new Chart(systemCtx, {
+    type: 'line',
+    data: systemData,
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: true, labels: { color: '#94a3b8' } } },
+        scales: {
+            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' }, beginAtZero: true, max: 100 },
             x: { grid: { display: false }, ticks: { display: false } }
         }
     }
@@ -61,8 +86,51 @@ socket.onmessage = (event) => {
         updateUI(data.metrics);
     } else if (data.type === 'GEOFENCE_STATUS') {
         updateGeofenceUI(data.data);
+    } else if (data.type === 'SYSTEM_STATS') {
+        updateSystemUI(data.data);
+    } else if (data.type === 'SAMP_STATUS') {
+        updateSAMPUI(data.data);
     }
 };
+
+function updateSAMPUI(data) {
+    const badge = document.getElementById('samp-badge');
+    badge.innerText = data.online ? 'ONLINE' : 'OFFLINE';
+    badge.className = `badge ${data.online ? 'online' : 'offline'}`;
+
+    if (data.online) {
+        document.getElementById('samp-hostname').innerText = data.hostname;
+        document.getElementById('samp-players').innerText = `${data.players} / ${data.maxplayers}`;
+        document.getElementById('samp-gamemode').innerText = data.gamemode;
+        document.getElementById('samp-map').innerText = data.map;
+    } else {
+        document.getElementById('samp-hostname').innerText = 'N/A';
+        document.getElementById('samp-players').innerText = 'N/A';
+        document.getElementById('samp-gamemode').innerText = 'N/A';
+        document.getElementById('samp-map').innerText = 'N/A';
+    }
+}
+
+function updateSystemUI(data) {
+    document.getElementById('cpu-value').innerText = data.cpu + '%';
+    document.getElementById('ram-value').innerText = data.mem + '%';
+
+    const now = new Date().toLocaleTimeString();
+    systemData.labels.push(now);
+    systemData.datasets[0].data.push(data.cpu);
+    systemData.datasets[1].data.push(data.mem);
+
+    if (systemData.labels.length > 20) {
+        systemData.labels.shift();
+        systemData.datasets[0].data.shift();
+        systemData.datasets[1].data.shift();
+    }
+    systemChart.update('none');
+}
+
+function serverAction(action) {
+    socket.send(JSON.stringify({ type: 'SERVER_ACTION', action }));
+}
 
 function updateGeofenceUI(data) {
     const statusCircle = document.querySelector('.status-circle');

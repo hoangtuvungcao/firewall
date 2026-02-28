@@ -1,15 +1,28 @@
 :root {
     --primary: #00f2fe;
     --secondary: #4facfe;
-    --bg: #0b0e14;
-    --card-bg: rgba(255, 255, 255, 0.03);
-    --border: rgba(255, 255, 255, 0.08);
-    --text: #e0e6ed;
+    --bg: #0f172a;
+    --card-bg: rgba(30, 41, 59, 0.7);
+    --border: rgba(255, 255, 255, 0.1);
+    --text: #f1f5f9;
     --text-dim: #94a3b8;
-    --success: #10b981;
+    --success: #22c55e;
     --error: #f43f5e;
     --warning: #f59e0b;
+    --info: #3b82f6;
     --glass-blur: blur(12px);
+}
+
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+@media (max-width: 992px) {
+    .grid-2 {
+        grid-template-columns: 1fr;
+    }
 }
 
 * {
@@ -264,6 +277,98 @@ td {
 
 .status-text strong {
     color: var(--text);
+}
+
+/* SAMP UI */
+.badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.badge.online {
+    background: rgba(34, 197, 94, 0.2);
+    color: var(--success);
+    border: 1px solid var(--success);
+}
+
+.badge.offline {
+    background: rgba(244, 63, 94, 0.2);
+    color: var(--error);
+    border: 1px solid var(--error);
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.detail-row:last-child {
+    border: none;
+}
+
+.detail-row .label {
+    color: var(--text-dim);
+    font-size: 0.875rem;
+}
+
+.detail-row .value {
+    color: var(--text);
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-align: right;
+}
+
+/* Control Buttons */
+.btn-control {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 1rem;
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-control i {
+    font-size: 1.25rem;
+}
+
+.btn-control:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-3px);
+    border-color: var(--primary);
+}
+
+.action-start:hover {
+    color: var(--success);
+    box-shadow: 0 5px 15px rgba(34, 197, 94, 0.2);
+}
+
+.action-stop:hover {
+    color: var(--error);
+    box-shadow: 0 5px 15px rgba(244, 63, 94, 0.2);
+}
+
+.action-restart:hover {
+    color: var(--warning);
+    box-shadow: 0 5px 15px rgba(245, 158, 11, 0.2);
+}
+
+.action-flush:hover {
+    color: var(--info);
+    box-shadow: 0 5px 15px rgba(59, 130, 246, 0.2);
 }
 
 /* Buttons */
