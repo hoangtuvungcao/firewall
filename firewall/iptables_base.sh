@@ -118,8 +118,8 @@ iptables -t mangle -A PREROUTING -m conntrack --ctstate INVALID -j DROP
 # Drop TCP packets không phải SYN mà lại NEW
 iptables -t mangle -A PREROUTING -p tcp ! --syn -m conntrack --ctstate NEW -j DROP
 
-# Drop fragmented packets
-iptables -t mangle -A PREROUTING -f -j DROP
+# [REMOVED] Drop fragmented packets - This breaks RakNet/UDP gaming payloads (SA:MP)
+# iptables -t mangle -A PREROUTING -f -j DROP
 
 # Drop MSS bất thường
 iptables -t mangle -A PREROUTING -p tcp -m conntrack --ctstate NEW -m tcpmss ! --mss 536:65535 -j DROP
