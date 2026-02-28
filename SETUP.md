@@ -1,138 +1,155 @@
-# 🛠️ NRO Shield — Hướng dẫn Cài đặt (Setup Guide)
+# 🛠️ NRO Shield — Hướng dẫn Cài đặt Hoàn Chỉnh (Zero to Hero)
 
-Tài liệu này cung cấp hướng dẫn **chi tiết từ A-Z** để triển khai hệ thống NRO Shield lên một VPS mới 100% (Khuyến nghị dùng **Ubuntu 20.04 / 22.04 LTS**).
+Tài liệu này là hướng dẫn **cầm tay chỉ việc từng lệnh một**. Chỉ cần copy và dán tuần tự từ máy chủ trống (VPS mới mua) cho đến khi NRO Shield hoạt động 100%.
 
----
-
-## 📌 Phần 1: Các yêu cầu chuẩn bị (Prerequisites)
-
-1. Một VPS/Server sử dụng **Ubuntu 20.04/22.04**.
-2. VPS phải có user **root** hoặc cấu hình `sudo` không cần mật khẩu.
-3. Bot Telegram đã tạo trên `@BotFather` (lấy HTTP API Token).
-4. Chat ID của tài khoản Telegram để nhận thông báo (lấy từ `@userinfobot`).
+**Yêu cầu môi trường:** Ubuntu 20.04 LTS hoặc Ubuntu 22.04 LTS.
 
 ---
 
-## 📌 Phần 2: Cài đặt Hệ sinh thái Cơ bản (Dependencies)
+## 📌 Phần 1: Đăng nhập và Chuẩn bị Hệ thống
 
-Đăng nhập SSH vào VPS và chạy tuần tự các lệnh sau để cài đặt môi trường.
-
-### 2.1. Cập nhật hệ thống & Cài đặt công cụ mạng
+Đầu tiên, hãy kết nối SSH vào VPS của bạn và chuyển sang quyền cao nhất (`root`):
 ```bash
-sudo apt update && sudo apt upgrade -y
-sudo apt install -y curl wget git nano unzip python3 python3-pip python3-venv mariadb-server iptables iptables-persistent ipset
+sudo su
+cd /root
 ```
 
-### 2.2. Cài đặt Node.js (v18.x)
+**Bước 1: Cập nhật hệ điều hành và cài đặt các trình biên dịch/công cụ cơ bản**
+*(Copy và dán toàn bộ cụm lệnh này vào terminal)*
+```bash
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -y && apt-get upgrade -y
+apt-get install -y curl wget git nano unzip build-essential python3 python3-pip python3-venv python3-dev mariadb-server iptables ipset iptables-persistent net-tools iproute2 nginx
+```
+
+**Bước 2: Cài đặt Node.js phiên bản 18**
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt install -y nodejs
-node -v # Kiểm tra phiên bản
-```
-
-### 2.3. Cấu hình Nginx Web Server
-```bash
-sudo apt install -y nginx
-sudo systemctl enable nginx
-sudo systemctl start nginx
+apt-get install -y nodejs
+node -v # Kết quả phải báo là v18.x.x
 ```
 
 ---
 
-## 📌 Phần 3: Cấu hình Cơ sở dữ liệu (MySQL / MariaDB)
+## 📌 Phần 2: Khởi tạo Cơ sở Dữ liệu
 
-Hệ thống cần 1 user và 1 database có tên `nroshield`.
+Chúng ta sẽ tạo thông tin Database an toàn. Bạn có thể bôi đen và copy khối lệnh dưới đây:
 
 ```bash
-sudo mysql -u root
-```
-
-Trong prompt của MySQL, gõ các lệnh sau (Đổi **Matkhau1@#$** thành mật khẩu của bạn):
-```sql
+mysql -u root <<EOF
 CREATE DATABASE nroshield CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER 'nroshield'@'localhost' IDENTIFIED BY 'Matkhau1@#$';
 GRANT ALL PRIVILEGES ON nroshield.* TO 'nroshield'@'localhost';
 FLUSH PRIVILEGES;
-EXIT;
+EOF
 ```
 
 ---
 
-## 📌 Phần 4: Triển khai Mã Nguồn NRO Shield
+## 📌 Phần 3: Clone Mã Nguồn & Cấu hình
 
-### 4.1. Tải source code
-
-Đưa toàn bộ thư mục `firewall` (trên máy cá nhân/git) vào đường dẫn `/opt/nroshield` trên VPS. Nếu bạn dùng Git:
+**Bước 1: Tải mã nguồn về thư mục `/opt/nroshield`**
 ```bash
-cd /opt
-git clone https://github.com/hoangtuvungcao/firewall.git nroshield
-cd nroshield
+rm -rf /opt/nroshield
+git clone https://github.com/hoangtuvungcao/firewall.git /opt/nroshield
+cd /opt/nroshield
 ```
 
-### 4.2. Cấu hình file Môi trường (`.env`)
-Chép file `.env.example` thành `.env`, sau đó mở file `.env` lên sửa thông tin.
+**Bước 2: Tự động tạo file `.env` (Chỉnh sửa chuỗi Token sau)**
+Chạy khối lệnh sau để tạo file cấu hình. 
+*(Lưu ý: Đừng quên cập nhật lại `TELEGRAM_BOT_TOKEN` và `TELEGRAM_CHAT_ID` bằng cách gõ `nano /opt/nroshield/.env` sau khi chạy lệnh này).*
 
 ```bash
-cp .env.example .env
-nano .env
-```
-Nội dung `.env` cần thiết lập:
-```ini
+cat <<EOF > /opt/nroshield/.env
 # Database
 DB_HOST=127.0.0.1
 DB_USER=nroshield
 DB_PASS=Matkhau1@#$
 DB_NAME=nroshield
 
-# JWT
-JWT_SECRET=Thay_doi_chuoi_bi_mat_nay
+# JWT Auth
+JWT_SECRET=KhoaBiMatNroShield_ThayDoiNeuCan
 JWT_EXPIRES_IN=24h
 
 # Ports
 API_PORT=5000
 AI_ENGINE_PORT=8000
 
-# Telegram Bot
-TELEGRAM_BOT_TOKEN=123456789:ABCDE-abcd-12345-bot-token
-TELEGRAM_CHAT_ID=12345678
+# Telegram Bot (THAY ĐỔI 2 DÒNG NÀY TRƯỚC KHI CHẠY BOT)
+TELEGRAM_BOT_TOKEN=123456789:ABCDEF-GHIJKL-Bot-Token-Cua-Ban
+TELEGRAM_CHAT_ID=000000000
+EOF
 ```
 
-### 4.3. Cài đặt các Modules và Khởi tạo DB
+**Mở file lên để điền Token Telegram của bạn:**
+```bash
+nano /opt/nroshield/.env
+```
+*(Điền xong bấm `Ctrl + X`, sau đó phím `Y`, và `Enter` để lưu lại).*
 
-**Backend (Node.js):**
+---
+
+## 📌 Phần 4: Biên dịch và Cài đặt Libraries
+
+Chạy lần lượt 3 mục bên dưới:
+
+**1. Cài đặt Backend API & Import Database Mẫu:**
 ```bash
 cd /opt/nroshield/backend
 npm install
-node database/migrate.js # Tạo các mảng dữ liệu tự động
+node database/migrate.js
 ```
+*(Lệnh migrate.js sẽ hiện chữ `✅ users`, `✅ servers`... là thành công)*
 
-**Telegram Bot (Node.js):**
+**2. Cài đặt Bot Telegram:**
 ```bash
 cd /opt/nroshield/telegram_bot
 npm install
 ```
 
-**AI Engine (Python):**
+**3. Cài đặt AI Engine (Python):**
 ```bash
 cd /opt/nroshield/ai_engine
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+deactivate
 ```
 
 ---
 
-## 📌 Phần 5: Cấu hình Nginx (Dành cho Web Dashboard & API)
+## 📌 Phần 5: Cấu hình Mạng & Firewall NAT (Rất Quan trọng)
 
-Xóa config mặc định và tạo cấu hình mới:
+Bắt buộc phải chạy các lệnh này để IP Tables chuyển tiếp được port:
 
+**1. Bật IP Forwarding:**
 ```bash
-sudo rm -f /etc/nginx/sites-enabled/default
-sudo nano /etc/nginx/sites-available/default
+echo "net.ipv4.ip_forward = 1" > /etc/sysctl.d/99-ipforward.conf
+sysctl -p /etc/sysctl.d/99-ipforward.conf
 ```
 
-Dán cấu hình sau:
-```nginx
+**2. Tạo Blacklist cho AI và chặn từ chối dịch vụ (DDoS):**
+```bash
+ipset create nroshield-ai-blocked hash:ip timeout 3600 -exist
+ipset create nroshield-ratelimited hash:ip timeout 600 -exist
+
+iptables -I INPUT -m set --match-set nroshield-ai-blocked src -j DROP
+iptables -I FORWARD -m set --match-set nroshield-ai-blocked src -j DROP
+```
+
+**3. Lưu quy tắc Firewall (Ngăn mất khi Reboot VPS):**
+```bash
+netfilter-persistent save
+```
+
+---
+
+## 📌 Phần 6: Cấu hình Web Server (Nginx)
+
+Nginx sẽ đóng vai trò hiển thị giao diện và làm cổng nối Proxy. Copy nguyên khối lệnh này dán vào Terminal để tự động tạo file config Nginx:
+
+```bash
+cat <<'EOF' > /etc/nginx/sites-available/default
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
@@ -141,7 +158,7 @@ server {
     root /opt/nroshield/web;
     index index.html;
 
-    # Giao diện tĩnh (Frontend)
+    # Frontend
     location / {
         try_files $uri $uri/ /index.html;
     }
@@ -154,14 +171,12 @@ server {
         proxy_set_header Connection "upgrade";
         proxy_set_header Host $host;
         proxy_cache_bypass $http_upgrade;
-        
-        # Để hệ thống nhận diện IP người dùng
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # WebSocket Proxy
+    # API Websocket (Biểu đồ Realtime)
     location /ws {
         proxy_pass http://127.0.0.1:5000/ws;
         proxy_http_version 1.1;
@@ -178,26 +193,25 @@ server {
         proxy_set_header Host $host;
     }
 }
+EOF
 ```
 
-Kích hoạt và khởi động lại Nginx:
+Khởi động lại Nginx:
 ```bash
-sudo ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
-sudo nginx -t
-sudo systemctl restart nginx
+ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
+nginx -t
+systemctl restart nginx
 ```
 
 ---
 
-## 📌 Phần 6: Đưa Systemd vào chạy ngầm (Services)
+## 📌 Phần 7: Kích hoạt 3 Services Chạy Ngầm
 
-Để API Backend, Bot và AI Engine tự động chạy khi VPS khởi động lại, tạo 3 Services trong Systemd.
+Tự động tạo các file systemd thay vì gõ thủ công:
 
-### 6.1. Backend Service
+**1. Service API:**
 ```bash
-sudo nano /etc/systemd/system/nroshield-api.service
-```
-```ini
+cat <<'EOF' > /etc/systemd/system/nroshield-api.service
 [Unit]
 Description=NRO Shield API Backend
 After=network.target mariadb.service
@@ -211,13 +225,12 @@ Restart=always
 
 [Install]
 WantedBy=multi-user.target
+EOF
 ```
 
-### 6.2. Telegram Bot Service
+**2. Service Telegram Bot:**
 ```bash
-sudo nano /etc/systemd/system/nroshield-bot.service
-```
-```ini
+cat <<'EOF' > /etc/systemd/system/nroshield-bot.service
 [Unit]
 Description=NRO Shield Telegram Bot
 After=network.target nroshield-api.service
@@ -231,13 +244,12 @@ Restart=always
 
 [Install]
 WantedBy=multi-user.target
+EOF
 ```
 
-### 6.3. AI Engine Service
+**3. Service AI Engine:**
 ```bash
-sudo nano /etc/systemd/system/nroshield-ai.service
-```
-```ini
+cat <<'EOF' > /etc/systemd/system/nroshield-ai.service
 [Unit]
 Description=NRO Shield AI Engine
 After=network.target
@@ -252,47 +264,36 @@ Restart=always
 
 [Install]
 WantedBy=multi-user.target
+EOF
 ```
 
-### 6.4. Kích hoạt Services
+**Kích hoạt và chạy toàn bộ:**
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl enable nroshield-api nroshield-bot nroshield-ai
-sudo systemctl start nroshield-api nroshield-bot nroshield-ai
+systemctl daemon-reload
+systemctl enable nroshield-api nroshield-bot nroshield-ai
+systemctl restart nroshield-api nroshield-bot nroshield-ai
+```
+
+Dùng lệnh này để kiểm tra xem cả 3 hệ thống đang báo xanh hay đỏ (nếu đều Active là chạy hoàn hảo):
+```bash
+systemctl status nroshield-api nroshield-bot nroshield-ai --no-pager
 ```
 
 ---
 
-## 📌 Phần 7: Cấu hình Bật NAT Port/Firewall (Rất Quan Trọng)
+## 🎉 Phần 8: Cấp Quyền & Đăng Nhập
 
-Để IP Tables có thể chuyển tiếp Port (Forwarding / NAT Proxy), bạn phải kích hoạt IP Forwarding trên hệ điều hành Linux:
-
+Khởi tạo **1 License Key** quyền lực vô hạn để bạn bắt đầu tạo tài khoản. Copy lệnh này:
 ```bash
-# Bật chuyển tiếp gói tin (IPv4 IP Forwarding)
-echo "net.ipv4.ip_forward = 1" | sudo tee -a /etc/sysctl.conf
-sudo sysctl -p
-
-# Mở ipset list để AI dùng
-sudo ipset create nroshield-ai-blocked hash:ip timeout 3600
-sudo ipset create nroshield-ratelimited hash:ip timeout 600
-
-# Cấu hình IPtables Drop
-sudo iptables -I INPUT -m set --match-set nroshield-ai-blocked src -j DROP
-sudo iptables -I FORWARD -m set --match-set nroshield-ai-blocked src -j DROP
-
-# Lên lịch lưu IP tables đề phòng khởi động lại bị mất
-sudo netfilter-persistent save
+mysql -u nroshield -p'Matkhau1@#$' nroshield -e "INSERT INTO license_keys (key_code, max_servers, max_ports_per_server, max_bandwidth_mbps) VALUES ('ADMIN-123456', 99, 99, 9999);"
 ```
 
----
+Mọi thứ đã sẵn sàng 100%. Cách sử dụng:
+1. Mở trình duyệt, truy cập địa chỉ IP của VPS: `http://<IP_VPS_CUA_BAN>/`
+2. Mở Telegram, chat với Bot, chọn `/start` và gõ lệnh `/login` » Sau đó đăng ký tài khoản mới kèm mã Key là `ADMIN-123456`.
+3. Bạn đã chính thức là Admin vĩnh viễn hệ thống NRO Shield.
 
-## 🎉 HOÀN TẤT & KIỂM TRA
-
-1. Truy cập IP của VPS trên Web Browser để mở Giao diện Dashboard: `http://<IP_VPS>/`
-2. Vào Telegram, chat với Bot bạn vừa tạo, gõ lệnh `/login` » Sau đó đăng nhập.
-3. Nếu bạn muốn lấy một Key Admin để đăng ký tài khoản mới:
-```bash
-mysql -u nroshield -p'Matkhau1@#$' nroshield -e "INSERT INTO license_keys (key_code, max_servers, max_ports_per_server, max_bandwidth_mbps) VALUES ('ADMIN-12345-XYZ', 10, 50, 1000);"
-```
-
-Mọi thứ đã sẵn sàng. Chúc bạn bảo vệ hệ thống của mình an toàn tuyệt đối với NRO Shield!
+Nếu trong quá trình có lỗi, gõ các lệnh sau để check:
+- Log API: `journalctl -u nroshield-api -n 50 -f`
+- Log Bot: `journalctl -u nroshield-bot -n 50 -f`
+- Log AI: `journalctl -u nroshield-ai -n 50 -f`
