@@ -18,7 +18,7 @@ const TelegramService = {
         try {
             await axios.post(url, {
                 chat_id: this.config.chatId,
-                text: `🚨 [NRO SHIELD APEX] 🚨\n\n${message}`,
+                text: `🚨 [SAMP SHIELD APEX] 🚨\n\n${message}`,
                 parse_mode: 'HTML'
             });
         } catch (e) {

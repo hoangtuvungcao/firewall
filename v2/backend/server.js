@@ -32,8 +32,8 @@ app.use(express.json());
 
 // WebSocket Logic
 wss.on('connection', async (ws) => {
-    console.log('[V2-WS] Client connected');
-    ws.send(JSON.stringify({ type: 'WELCOME', message: 'NRO Shield v2 API' }));
+    console.log('[SAMP-WS] Client connected');
+    ws.send(JSON.stringify({ type: 'WELCOME', message: 'SAMP Shield v2 API' }));
 
     // Gửi ngay 50 log gần nhất khi mới kết nối
     const logs = await AttackLogService.getRecent(50);
@@ -89,7 +89,7 @@ app.get('/api/health', (req, res) => {
 // Start Server
 const PORT = process.env.PORT || 5050; // Dùng port khác bản cũ
 server.listen(PORT, '0.0.0.0', async () => {
-    console.log(`[NRO Shield v2] Running on port ${PORT}`);
+    console.log(`[SAMP Shield v2] Running on port ${PORT}`);
 
     // Khởi chạy các dịch vụ
     await AttackLogService.init(); // Đảm bảo bảng db đã có

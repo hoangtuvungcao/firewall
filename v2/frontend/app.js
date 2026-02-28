@@ -73,8 +73,13 @@ const protocolChart = new Chart(protoCtx, {
     }
 });
 
-// WebSocket Connection
-const socket = new WebSocket(`ws://${window.location.hostname}:5050/ws`);
+// WebSocket Connection Handling
+// Tối ưu cho Vercel: Lấy Backend URL từ biến môi trường hoặc mặc định là localhost
+const BACKEND_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? `ws://${window.location.hostname}:5050/ws`
+    : `ws://103.77.246.150:5050/ws`; // IP VPS của bạn
+
+const socket = new WebSocket(BACKEND_URL);
 
 socket.onopen = () => {
     console.log('[V2-WS] Connected to backend');

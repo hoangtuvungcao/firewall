@@ -10,14 +10,14 @@ const MeshService = {
     config: {
         enabled: process.env.MESH_ENABLED === 'true',
         clusterKey: process.env.CLUSTER_KEY || 'GLOBAL',
-        registry: process.env.MESH_REGISTRY_URL || 'https://api.nroshield.com/mesh',
+        registry: process.env.MESH_REGISTRY_URL || 'https://api.samp-shield.com/mesh',
         publicIp: process.env.VPS_PUBLIC_IP
     },
 
     async start() {
         if (!this.config.enabled) return;
 
-        console.log(`[MESH] Starting Mesh Service (Cluster: ${this.config.clusterKey})`);
+        console.log(`[SAMP-MESH] Starting Mesh Service (Cluster: ${this.config.clusterKey})`);
 
         // 1. Đăng ký lên Registry để "báo danh"
         await this.pingRegistry();
