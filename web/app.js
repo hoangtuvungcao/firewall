@@ -15,6 +15,78 @@ async function api(method, endpoint, data = null) {
   return json;
 }
 
+// === Chart.js Realtime Setup ===
+let trafficChartInstance = null;
+const maxChartPoints = 20;
+let chartLabels = Array(maxChartPoints).fill('');
+let chartDataConnections = Array(maxChartPoints).fill(0);
+
+function initTrafficChart() {
+  const ctx = document.getElementById('trafficChart');
+  if (!ctx || trafficChartInstance) return;
+
+  Chart.defaults.color = '#94a3b8';
+  Chart.defaults.font.family = 'Inter';
+
+  trafficChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: chartLabels,
+      datasets: [{
+        label: 'Active Connections',
+        data: chartDataConnections,
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        borderWidth: 2,
+        tension: 0.4,
+        fill: true,
+        pointRadius: 0,
+        pointHitRadius: 10
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 400, easing: 'linear' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          backgroundColor: 'rgba(15, 21, 32, 0.9)',
+          titleColor: '#fff',
+          bodyColor: '#e2e8f0',
+          borderColor: 'rgba(255,255,255,0.1)',
+          borderWidth: 1
+        }
+      },
+      scales: {
+        x: { display: false, grid: { display: false } },
+        y: {
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          beginAtZero: true,
+          suggestedMax: 100
+        }
+      }
+    }
+  });
+}
+
+function updateTrafficChart(metrics) {
+  if (!trafficChartInstance) return;
+  const now = new Date().toLocaleTimeString('vi', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+  chartLabels.push(now);
+  chartDataConnections.push(metrics.total_connections || 0);
+
+  if (chartLabels.length > maxChartPoints) {
+    chartLabels.shift();
+    chartDataConnections.shift();
+  }
+
+  trafficChartInstance.update('none'); // Update without full animation for smoother real-time
+}
+
 // === Toast ===
 function toast(msg, type = 'info') {
   const t = document.getElementById('toast');
@@ -147,10 +219,12 @@ async function loadOverview() {
   document.getElementById('stat-ports').textContent = `${summary.active_ports || 0}/${summary.total_ports || 0}`;
   document.getElementById('stat-attacks').textContent = summary.attacks_today || 0;
   try {
-    const r = await fetch(`/status`);
+    const r = await fetch(`${API}/api/health`);
     const ai = await r.json();
-    document.getElementById('stat-ai').textContent = ai.models_loaded ? 'Active' : 'Learning';
+    document.getElementById('stat-ai').textContent = 'Active';
   } catch { document.getElementById('stat-ai').textContent = 'Offline'; }
+
+  initTrafficChart();
 
   if (!proxies.length) {
     document.getElementById('recent-proxies').innerHTML = '<p class="muted">Chưa có proxy. Vào menu Servers → thêm server → menu Proxy → tạo proxy.</p>';
@@ -431,6 +505,35 @@ document.querySelectorAll('.sidebar-menu li').forEach(li => {
   });
 });
 
+// === WebSocket Logic ===
+function initWebSocket() {
+  if (!token) return;
+  const wsUrl = API.replace('http', 'ws') + '/ws';
+  const ws = new WebSocket(wsUrl);
+
+  ws.onopen = () => {
+    document.getElementById('api-status').textContent = 'Connected (Live)';
+    document.getElementById('api-status').style.color = 'var(--success)';
+  };
+
+  ws.onmessage = (event) => {
+    try {
+      const msg = JSON.parse(event.data);
+      if (msg.type === 'TRAFFIC_METRICS' && msg.data) {
+        updateTrafficChart(msg.data);
+      }
+    } catch (e) { }
+  };
+
+  ws.onclose = () => {
+    document.getElementById('api-status').textContent = 'Reconnecting...';
+    document.getElementById('api-status').style.color = 'var(--warning)';
+    setTimeout(initWebSocket, 5000);
+  };
+}
+
 // === Init ===
-if (token && user) showDashboard();
-else document.getElementById('login-screen').classList.add('active');
+if (token && user) {
+  showDashboard();
+  initWebSocket();
+} else document.getElementById('login-screen').classList.add('active');

@@ -111,6 +111,20 @@ cron.schedule('*/5 * * * *', async () => {
     }
 });
 
+// Broadcast Real-time /var/log/nroshield/traffic/current_metrics.json mỗi 5s
+const fs = require('fs');
+setInterval(() => {
+    try {
+        if (fs.existsSync('/var/log/nroshield/traffic/current_metrics.json')) {
+            const data = fs.readFileSync('/var/log/nroshield/traffic/current_metrics.json', 'utf8');
+            const metrics = JSON.parse(data);
+            app.get('broadcast')({ type: 'TRAFFIC_METRICS', data: metrics });
+        }
+    } catch (err) {
+        // Ignore read errors (e.g., file being written)
+    }
+}, 5000);
+
 // === Start Server ===
 const PORT = config.API_PORT || 5000;
 
