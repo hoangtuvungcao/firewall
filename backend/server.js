@@ -24,7 +24,7 @@ const { checkExpiredKeys } = require('./services/key.service');
 const { syncFirewallRules } = require('./services/firewall.service');
 
 const app = express();
-app.set('trust proxy', true);
+app.set('trust proxy', 1);
 const server = http.createServer(app);
 
 // === WebSocket Server ===

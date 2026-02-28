@@ -1,8 +1,58 @@
 const express = require('express');
 const db = require('../config/database');
 const { authenticate, requireAdmin } = require('../middleware/auth');
+const { sendAttackAlert } = require('../services/alert.service');
 
 const router = express.Router();
+
+// POST /api/ai/alert — Webhook từ AI Engine (Không cần JWT, chỉ localhost)
+router.post('/alert', async (req, res) => {
+    const ip = req.ip || req.socket.remoteAddress || '';
+    if (!ip.includes('127.0.0.1') && !ip.includes('::1') && !ip.includes('::ffff:127.0.0.1') && ip !== '::ffff:103.77.246.157' && ip !== '103.77.246.157') {
+        console.warn('[AI Alert] Blocked external request from:', ip);
+        return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    try {
+        const { score, type, connections, unique_ips } = req.body;
+
+        // Lấy 1 proxy port đang active (AI hiện monitor toàn cục, ta gán vào proxy đầu tiên để hiện lên Dashboard)
+        const [ports] = await db.query(`
+            SELECT pp.id, pp.proxy_port, s.name as server_name, s.target_ip
+            FROM proxy_ports pp JOIN servers s ON pp.server_id = s.id 
+            WHERE pp.is_active = TRUE LIMIT 1
+        `);
+
+        if (ports.length > 0) {
+            const port = ports[0];
+            const attackerIp = `Multiple (${unique_ips} IPs)`;
+
+            // 1. Lưu vào attack_logs
+            await db.query(
+                `INSERT INTO attack_logs (proxy_port_id, attacker_ip, attack_type, packets_blocked, anomaly_score, ai_detected)
+                 VALUES (?, ?, ?, ?, ?, ?)`,
+                [port.id, attackerIp, type, connections * 10, score, true]
+            );
+
+            // 2. Gửi cảnh báo Telegram
+            await sendAttackAlert({
+                serverName: port.server_name,
+                proxyPort: port.proxy_port,
+                targetAddress: port.target_ip,
+                attackType: type,
+                anomalyScore: score.toFixed(2),
+                attackerIp: attackerIp,
+                packetsBlocked: connections * 10
+            });
+        }
+
+        res.json({ message: 'Alert processed' });
+    } catch (err) {
+        console.error('[AI Alert Endpoint Error]', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 router.use(authenticate);
 
 // GET /api/ai/status

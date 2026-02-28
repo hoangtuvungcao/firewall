@@ -13,7 +13,7 @@ CONFIG_FILE="${SCRIPT_DIR}/../.env"
 
 # Defaults (override bằng .env)
 VPS_PUBLIC_IP=""
-SSH_PORT="2222"
+SSH_PORT="22"
 GAME_PORTS="14445,20000,1875"
 API_PORT="5000"
 WEB_PORT="3000"
@@ -184,7 +184,7 @@ log_info "Cho phép SSH port ${SSH_PORT}..."
 iptables -A INPUT -p tcp --dport "$SSH_PORT" -m conntrack --ctstate NEW \
     -m recent --set --name ssh_limit
 iptables -A INPUT -p tcp --dport "$SSH_PORT" -m conntrack --ctstate NEW \
-    -m recent --update --seconds 60 --hitcount 5 --name ssh_limit -j DROP
+    -m recent --update --seconds 60 --hitcount 50 --name ssh_limit -j DROP
 iptables -A INPUT -p tcp --dport "$SSH_PORT" -m conntrack --ctstate NEW -j ACCEPT
 
 # ============================================================================

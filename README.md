@@ -1,81 +1,71 @@
-# 🛡️ NRO Shield — Advanced DDoS Proxy & Security Engine
-
-**NRO Shield** là giải pháp bảo mật và chuyển tiếp proxy hiệu năng cao, tích hợp trí tuệ nhân tạo (AI) để bảo vệ game server khỏi các cuộc tấn công DDoS phức tạp. Hệ thống tạo ra một lớp "Khiên" (Shield VPS) để ẩn IP gốc của máy chủ và lọc toàn bộ traffic độc hại.
-
----
-
-## ✨ Tính năng nổi bật
-
-- **Chuyển tiếp Đa Giao Thức (High-Speed NAT):** Hỗ trợ chuyển tiếp **TCP**, **UDP** và **Both** với độ trễ cực thấp.
-- **AI Anomaly Detection:** Tự động phân tích hành vi traffic bằng mô hình Machine Learning (Isolation Forest) để phát hiện và chặn các kết nối bất thường.
-- **Cơ chế Mitigate Thông Minh:** Tự động điều khiển `iptables` và `ipset` để chặn IP tấn công trong thời gian thực.
-- **Quản lý Đa Nền Tảng:**
-  - **Web Dashboard:** Giao diện quản trị hiện đại, theo dõi traffic realtime.
-  - **Flutter App (Mobile):** Quản lý server/proxy ngay trên điện thoại (Android/iOS).
-  - **Telegram Bot:** Nhận cảnh báo tức thì và điều khiển bot qua lệnh chat.
-- **Hardening Bảo Mật:** Tích hợp sẵn `sysctl` security patches, `Fail2Ban`, và `CrowdSec`.
-- **MASQUERADE Ready:** Đảm bảo traffic hai chiều thông suốt tuyệt đối cho mọi loại game.
+<div align="center">
+  <img src="https://i.ibb.co/6nPpsX3/icon.png" width="120" alt="NRO Shield Logo">
+  <h1>🛡️ NRO Shield</h1>
+  <p><strong>Hệ thống Tường lửa Thông minh tích hợp AI & Telegram Bot</strong></p>
+  
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+  [![Node.js](https://img.shields.io/badge/Node.js-v18+-green.svg)](https://nodejs.org/)
+  [![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/)
+  [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-teal.svg)](https://fastapi.tiangolo.com/)
+</div>
 
 ---
 
-## 🏗️ Kiến trúc Hệ thống
+## 🌟 Giới thiệu Tóm tắt
 
-```mermaid
-graph TD
-    User((Người chơi)) -->|Traffic| Shield[Shield VPS]
-    Shield -->|Traffic Sạch| Origin[Máy chủ Game - Origin]
-    
-    subgraph "Bên trong Shield VPS"
-        NAT[NAT Engine - iptables]
-        AI[AI Detection - Machine Learning]
-        API[Backend API - Node.js]
-        DB[(Cơ sở dữ liệu - MariaDB)]
-    end
-    
-    API <--> NAT
-    API <--> AI
-    API <--> DB
-    
-    Admin((Quản trị viên)) <-->|Web/App/Bot| API
-    AI -->|Chặn IP| NAT
+NRO Shield là hệ thống phòng chống tấn công mạng (Anti-DDoS, TCP/UDP Flood, Slowloris) chuyên dụng bảo vệ các máy chủ game và dịch vụ trực tuyến. Cốt lõi của hệ thống sự kết hợp giữa **Linux IPTables/NAT** và mô hình **Machine Learning (Isolation Forest, Autoencoder)** để phát hiện dị thường kết hợp với tự động điều hướng và chặn lọc lưu lượng (Mitigation).
+
+---
+
+## 🚀 Tính năng Nổi bật
+
+### 1. 🤖 AI-Powered Detection
+Hệ thống AI Engine phân tích dữ liệu mạng (`ss`, `conntrack`, `RX/TX bytes`) liên tục để lập đường cơ sở (baseline) và phát hiện tấn công theo thời gian thực (Zero-day attack detection).
+- Tự động chặn IP độc hại qua `ipset`.
+- Rate-limiting thông minh để bảo vệ băng thông.
+
+### 2. 📱 Telegram Bot Quản trị
+Hệ thống cung cấp một Bot Telegram giúp thao tác thay vì sử dụng VPS trực tiếp:
+- **Người dùng:** Đăng nhập (`/login`), tạo Proxy port ẩn IP gốc (`/addproxy`), xem thống kê (`/stats`), cảnh báo tấn công (`/attacks`).
+- **Quản trị viên (Admin):** Khởi tạo License Key (`/createkey`), thu hồi Key (`/delkey`), khởi động lại IP tables (`/firewall`), theo dõi VPS health (`/system`).
+
+### 3. 🌐 Dashboard Web Trực quan
+Giao diện Web mượt mà (công nghệ Vanilla JS + Tailwind-like CSS):
+- Biểu đồ traffic (Băng thông, Packets) thời gian thực.
+- Bảng điều khiển Proxy Ports (Quản lý Port mapping).
+- Danh sách tấn công bị chặn (Attack Logs).
+- Nền tảng Authentication (Login/Register với Key bảo mật).
+
+### 4. 🔗 Core Linux Networking
+Sử dụng trực tiếp nhân Linux để định tuyến và chuyển tiếp port cực kỳ hiệu quả:
+- **DNAT / SNAT / MASQUERADE** siêu tốc.
+- Hỗ trợ cả TCP, UDP, và Dual-stack.
+- Lưu lượng bị rớt tại iptables raw/mangle table trước khi vào hệ điều hành.
+
+---
+
+## 🏗️ Cấu trúc dự án (Architecture)
+
+```text
+nroshield/
+├── ai_engine/          # Python FastAPI - Mô hình AI phân tích & ra quyết định tự động
+├── backend/            # Node.js + Express JS - REST API, Database (MySQL) & Auth
+├── frontend/           # HTML/CSS/JS thuần - Giao diện Web Client Dashboard
+├── telegram_bot/       # Node.js (grammY) - Tương tác qua Telegram
+├── ...
 ```
 
 ---
 
-## 📂 Sơ đồ các thành phần
+## 🛠️ Hướng dẫn Cài đặt
 
-| Thư mục | Chức năng | Công nghệ |
-|:---|:---|:---|
-| [`/backend`](./backend) | Core API, Quản lý User/Key/Log | Node.js, Express, Sequelize |
-| [`/web`](./web) | Dashboard quản trị trên trình duyệt | HTML, CSS Glassmorphism, JS |
-| [`/ai_engine`](./ai_engine) | Phân tích traffic và tự động chặn tấn công | Python, FastAPI, Scikit-learn |
-| [`/telegram_bot`](./telegram_bot) | Bot gửi cảnh báo và quản lý nhanh | Node.js, Grammy.js |
-| [`/flutter_app`](./flutter_app) | Ứng dụng di động quản lý toàn diện | Flutter, Dart |
-| [`/firewall`](./firewall) | Toàn bộ script cấu hình bảo mật hệ thống | Bash, iptables, ipset |
+Muốn tự triển khai NRO Shield lên máy chủ CentOS/Ubuntu của bạn? Hãy xem hướng dẫn rất chi tiết từng bước nghiệm thu tại đây:
+
+👉 **[Xem Hướng dẫn Cài đặt Chi tiết (SETUP.md)](SETUP.md)**
 
 ---
 
-## 🚀 Bắt đầu nhanh (Quick Start)
+## 📞 Hỗ trợ & Liên hệ
+Nếu bạn gặp khó khăn trong quá trình sử dụng hệ thống hoặc cài đặt, vui lòng tạo Issue trên GitHub hoặc liên hệ đội ngũ phát triển.
 
-1. **Clone repository:**
-   ```bash
-   git clone https://github.com/hoangtuvungcao/firewall.git /opt/nroshield
-   cd /opt/nroshield
-   ```
-
-2. **Chạy script cài đặt:**
-   ```bash
-   chmod +x firewall/*.sh
-   ./firewall/install.sh
-   ```
-
-Để cài đặt hệ thống từ A-Z, bạn hãy làm theo hướng dẫn chi tiết tại:
-
-👉 [**HƯỚNG DẪN CÀI ĐẶT CHI TIẾT (SETUP.MD)**](./SETUP.md)
-
----
-
-## 📜 Giấy phép
-Dự án được phát hành dưới giấy phép [**MIT License**](./LICENSE).
-
-*Phát triển bởi ❤️ dành cho cộng đồng NRO.*
+> **Cảnh báo:** Hãy thay đổi các mật khẩu mặc định (Root MySQL, JWT Secret, Admin Auth) khi đưa hệ thống ra môi trường Production (thực tế).

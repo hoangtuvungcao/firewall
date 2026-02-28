@@ -1,148 +1,278 @@
-# 🛠️ NRO Shield — Hướng dẫn cài đặt Từng-Bước (Step-by-Step)
+# 🛠️ NRO Shield — Hướng dẫn Cài đặt (Setup Guide)
 
-Tài liệu này cung cấp các lệnh chi tiết nhất để bạn tự setup một Shield VPS hoàn chỉnh.
-
----
-
-## 📋 Bước 1: Chuẩn bị VPS
-- **OS:** Ubuntu 22.04 LTS (Bắt buộc).
-- **Yêu cầu:** VPS có Internet và quyền Root.
+Tài liệu này cung cấp hướng dẫn **chi tiết từ A-Z** để triển khai hệ thống NRO Shield lên một VPS mới 100% (Khuyến nghị dùng **Ubuntu 20.04 / 22.04 LTS**).
 
 ---
 
-## 🚀 Bước 2: Tải Source Code & Cài đặt Dependencies
+## 📌 Phần 1: Các yêu cầu chuẩn bị (Prerequisites)
 
-1. **Kết nối vào VPS bằng SSH:**
-   ```bash
-   ssh root@your_vps_ip
-   ```
-
-2. **Clone source code về thư mục `/opt`:**
-   ```bash
-   git clone https://github.com/hoangtuvungcao/firewall.git /opt/nroshield
-   cd /opt/nroshield
-   ```
-
-3. **Chạy script cài đặt tự động:**
-   *Lệnh này sẽ cài đặt Node.js, Python, MariaDB, iptables và các gói bảo mật.*
-   ```bash
-   chmod +x firewall/*.sh
-   ./firewall/install.sh
-   ```
+1. Một VPS/Server sử dụng **Ubuntu 20.04/22.04**.
+2. VPS phải có user **root** hoặc cấu hình `sudo` không cần mật khẩu.
+3. Bot Telegram đã tạo trên `@BotFather` (lấy HTTP API Token).
+4. Chat ID của tài khoản Telegram để nhận thông báo (lấy từ `@userinfobot`).
 
 ---
 
-## 🗄️ Bước 3: Cấu hình Cơ sở dữ liệu (Database)
+## 📌 Phần 2: Cài đặt Hệ sinh thái Cơ bản (Dependencies)
 
-Hãy copy và chạy các lệnh sau để khởi tạo DB MariaDB:
+Đăng nhập SSH vào VPS và chạy tuần tự các lệnh sau để cài đặt môi trường.
 
-1. **Đăng nhập vào MySQL:**
-   ```bash
-   mysql -u root
-   ```
-
-2. **Chạy các lệnh SQL (Dán vào terminal MySQL):**
-   ```sql
-   -- Tạo database
-   CREATE DATABASE nroshield CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-   -- Tạo user và mật khẩu (Hãy thay 'Matkhau_Cua_Ban' bằng mật khẩu của bạn)
-   CREATE USER 'nroshield'@'localhost' IDENTIFIED BY 'Matkhau_Cua_Ban';
-   -- Cấp quyền
-   GRANT ALL PRIVILEGES ON nroshield.* TO 'nroshield'@'localhost';
-   FLUSH PRIVILEGES;
-   EXIT;
-   ```
-
-3. **Chạy Migration để tạo các bảng:**
-   ```bash
-   cd /opt/nroshield/backend
-   npm install
-   node database/migrate.js
-   node database/seed.js
-   ```
-
----
-
-## ⚙️ Bước 4: Cấu hình Biến môi trường (.env)
-
-Mở file `.env` và điền thông tin:
+### 2.1. Cập nhật hệ thống & Cài đặt công cụ mạng
 ```bash
-cd /opt/nroshield
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y curl wget git nano unzip python3 python3-pip python3-venv mariadb-server iptables iptables-persistent ipset
+```
+
+### 2.2. Cài đặt Node.js (v18.x)
+```bash
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt install -y nodejs
+node -v # Kiểm tra phiên bản
+```
+
+### 2.3. Cấu hình Nginx Web Server
+```bash
+sudo apt install -y nginx
+sudo systemctl enable nginx
+sudo systemctl start nginx
+```
+
+---
+
+## 📌 Phần 3: Cấu hình Cơ sở dữ liệu (MySQL / MariaDB)
+
+Hệ thống cần 1 user và 1 database có tên `nroshield`.
+
+```bash
+sudo mysql -u root
+```
+
+Trong prompt của MySQL, gõ các lệnh sau (Đổi **Matkhau1@#$** thành mật khẩu của bạn):
+```sql
+CREATE DATABASE nroshield CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'nroshield'@'localhost' IDENTIFIED BY 'Matkhau1@#$';
+GRANT ALL PRIVILEGES ON nroshield.* TO 'nroshield'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+---
+
+## 📌 Phần 4: Triển khai Mã Nguồn NRO Shield
+
+### 4.1. Tải source code
+
+Đưa toàn bộ thư mục `firewall` (trên máy cá nhân/git) vào đường dẫn `/opt/nroshield` trên VPS. Nếu bạn dùng Git:
+```bash
+cd /opt
+git clone https://github.com/hoangtuvungcao/firewall.git nroshield
+cd nroshield
+```
+
+### 4.2. Cấu hình file Môi trường (`.env`)
+Chép file `.env.example` thành `.env`, sau đó mở file `.env` lên sửa thông tin.
+
+```bash
 cp .env.example .env
 nano .env
 ```
-**Các mục cần lưu ý:**
-- `VPS_PUBLIC_IP`: Điền IP của Shield VPS.
-- `DB_PASSWORD`: Điền mật khẩu bạn vừa tạo ở Bước 3.
-- `TELEGRAM_BOT_TOKEN`: Token lấy từ @BotFather.
+Nội dung `.env` cần thiết lập:
+```ini
+# Database
+DB_HOST=127.0.0.1
+DB_USER=nroshield
+DB_PASS=Matkhau1@#$
+DB_NAME=nroshield
+
+# JWT
+JWT_SECRET=Thay_doi_chuoi_bi_mat_nay
+JWT_EXPIRES_IN=24h
+
+# Ports
+API_PORT=5000
+AI_ENGINE_PORT=8000
+
+# Telegram Bot
+TELEGRAM_BOT_TOKEN=123456789:ABCDE-abcd-12345-bot-token
+TELEGRAM_CHAT_ID=12345678
+```
+
+### 4.3. Cài đặt các Modules và Khởi tạo DB
+
+**Backend (Node.js):**
+```bash
+cd /opt/nroshield/backend
+npm install
+node database/migrate.js # Tạo các mảng dữ liệu tự động
+```
+
+**Telegram Bot (Node.js):**
+```bash
+cd /opt/nroshield/telegram_bot
+npm install
+```
+
+**AI Engine (Python):**
+```bash
+cd /opt/nroshield/ai_engine
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
 
 ---
 
-## 🖥️ Bước 5: Thiết lập Dịch vụ Sytem (Systemd)
+## 📌 Phần 5: Cấu hình Nginx (Dành cho Web Dashboard & API)
 
-Tạo các service để app tự khởi động cùng VPS:
+Xóa config mặc định và tạo config cho NRO Shield.
 
 ```bash
-# Copy các file service vào hệ thống
-sudo cp /opt/nroshield/firewall/services/*.service /etc/systemd/system/
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nano /etc/nginx/sites-available/nroshield
+```
 
-# Load lại cấu hình
+Dán cấu hình sau:
+```nginx
+server {
+    listen 80;
+    server_name _; # Hoặc điền domain của bạn
+
+    # Giao diện tĩnh (Frontend)
+    location / {
+        root /opt/nroshield/web;
+        index index.html;
+        try_files $uri $uri/ =404;
+    }
+
+    # API Backend Proxy
+    location /api/ {
+        proxy_pass http://127.0.0.1:5000/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        
+        # Để hệ thống nhận diện IP người dùng
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+```
+
+Kích hoạt và khởi động lại Nginx:
+```bash
+sudo ln -s /etc/nginx/sites-available/nroshield /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl restart nginx
+```
+
+---
+
+## 📌 Phần 6: Đưa Systemd vào chạy ngầm (Services)
+
+Để API Backend, Bot và AI Engine tự động chạy khi VPS khởi động lại, tạo 3 Services trong Systemd.
+
+### 6.1. Backend Service
+```bash
+sudo nano /etc/systemd/system/nroshield-api.service
+```
+```ini
+[Unit]
+Description=NRO Shield API Backend
+After=network.target mariadb.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/nroshield/backend
+ExecStart=/usr/bin/node server.js
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### 6.2. Telegram Bot Service
+```bash
+sudo nano /etc/systemd/system/nroshield-bot.service
+```
+```ini
+[Unit]
+Description=NRO Shield Telegram Bot
+After=network.target nroshield-api.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/nroshield/telegram_bot
+ExecStart=/usr/bin/node bot.js
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### 6.3. AI Engine Service
+```bash
+sudo nano /etc/systemd/system/nroshield-ai.service
+```
+```ini
+[Unit]
+Description=NRO Shield AI Engine
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/nroshield/ai_engine
+Environment=PATH=/opt/nroshield/ai_engine/venv/bin:$PATH
+ExecStart=/opt/nroshield/ai_engine/venv/bin/python main.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### 6.4. Kích hoạt Services
+```bash
 sudo systemctl daemon-reload
-
-# Kích hoạt và Chạy toàn bộ services
-sudo systemctl enable --now nroshield-api nroshield-ai nroshield-web nroshield-bot
+sudo systemctl enable nroshield-api nroshield-bot nroshield-ai
+sudo systemctl start nroshield-api nroshield-bot nroshield-ai
 ```
 
 ---
 
-## 🔐 Bước 6: Kích hoạt Tường lửa (Firewall)
+## 📌 Phần 7: Cấu hình Bật NAT Port/Firewall (Rất Quan Trọng)
 
-Đây là bước quan trọng nhất để bảo vệ VPS:
+Để IP Tables có thể chuyển tiếp Port (Forwarding / NAT Proxy), bạn phải kích hoạt IP Forwarding trên hệ điều hành Linux:
 
-1. **Thiết lập luật Firewall cơ bản:**
-   *Script này sẽ chặn port scan, giới hạn ping và mở port cho Proxy.*
-   ```bash
-   cd /opt/nroshield/firewall
-   ./iptables_base.sh
-   ```
-
-2. **Hardening hệ thống:**
-   *Tối ưu hóa kernel để chịu tải cao.*
-   ```bash
-   ./sysctl_hardening.sh
-   ```
-
----
-
-## 📱 Bước 7: Cấu hình App App Mobile (Flutter)
-
-Trên máy tính cá nhân của bạn:
-
-1. **Đổi IP cho App:** 
-   Mở file `flutter_app/lib/services/api_service.dart`, đổi `baseUrl` thành `https://your-domain.com` hoặc `http://VPS_IP:5000`.
-
-2. **Build APK:**
-   ```bash
-   cd flutter_app
-   flutter pub get
-   flutter build apk --release
-   ```
-
----
-
-## 🔍 Bước 8: Kiểm tra trạng thái
-
-Chạy script kiểm tra tổng thể:
 ```bash
-cd /opt/nroshield
-bash master_check.sh
+# Bật chuyển tiếp gói tin (IPv4 IP Forwarding)
+echo "net.ipv4.ip_forward = 1" | sudo tee -a /etc/sysctl.conf
+sudo sysctl -p
+
+# Mở ipset list để AI dùng
+sudo ipset create nroshield-ai-blocked hash:ip timeout 3600
+sudo ipset create nroshield-ratelimited hash:ip timeout 600
+
+# Cấu hình IPtables Drop
+sudo iptables -I INPUT -m set --match-set nroshield-ai-blocked src -j DROP
+sudo iptables -I FORWARD -m set --match-set nroshield-ai-blocked src -j DROP
+
+# Lên lịch lưu IP tables đề phòng khởi động lại bị mất
+sudo netfilter-persistent save
 ```
 
-**Tại sao cần các lệnh này?**
-- `install.sh`: Giúp bạn không phải cài tay từng gói phần mềm.
-- `iptables_base.sh`: Tạo ra "vòng vây" bảo vệ port, chỉ cho traffic hợp lệ đi qua.
-- `MASQUERADE (trong backend)`: Giúp game client nhận diện traffic phản hồi từ Shield một cách thông suốt.
-
 ---
-> [!TIP]
-> **Khắc phục lỗi:** Nếu `apt update` bị treo, hãy kiểm tra kết nối Outbound Internet của VPS hoặc thử đổi DNS sang `8.8.8.8` trong `/etc/resolv.conf`.
+
+## 🎉 HOÀN TẤT & KIỂM TRA
+
+1. Truy cập IP của VPS trên Web Browser để mở Giao diện Dashboard: `http://<IP_VPS>/`
+2. Vào Telegram, chat với Bot bạn vừa tạo, gõ lệnh `/login` » Sau đó đăng nhập.
+3. Nếu bạn muốn lấy một Key Admin để đăng ký tài khoản mới:
+```bash
+mysql -u nroshield -p'Matkhau1@#$' nroshield -e "INSERT INTO license_keys (key_code, max_servers, max_ports_per_server, max_bandwidth_mbps) VALUES ('ADMIN-12345-XYZ', 10, 50, 1000);"
+```
+
+Mọi thứ đã sẵn sàng. Chúc bạn bảo vệ hệ thống của mình an toàn tuyệt đối với NRO Shield!
