@@ -1,6 +1,6 @@
-const { exec } = require('child_process');
 const FirewallService = require('./firewall.service');
 const SmartGeofence = require('./smart_geofence.service');
+const AttackLogLogService = require('./attack_log.service');
 
 /**
  * SHIELD AI v2 - Behavioral Analysis Engine
@@ -84,6 +84,14 @@ const ShieldAI = {
                 // PUSH THẲNG VÀO XDP MAP (Bypass Kernel hoàn toàn cho tương lai)
                 exec(`bpftool map update name blacklist_map key hex ${this.ipToHex(ip)} value hex 01`);
 
+                // LƯU VÀO DATABASE
+                await AttackLogLogService.log({
+                    ip,
+                    type: 'RAKNET_HANDSHAKE_FLOOD',
+                    pps: Math.round(handshakePackets / (this.configs.analysisInterval / 1000)),
+                    severity: 'HIGH'
+                });
+
                 await FirewallService.blacklistIp(ip, 7200);
                 this.state.ipStats.delete(ip);
                 continue;
@@ -93,6 +101,15 @@ const ShieldAI = {
             const queryPackets = stats.sizes.filter(s => s < 20).length;
             if (queryPackets > this.configs.maxQueriesPerSecond) {
                 console.warn(`[SHIELD-AI] ALERT: Query Spam detected from ${ip}. Blocking...`);
+
+                // LƯU VÀO DATABASE
+                await AttackLogLogService.log({
+                    ip,
+                    type: 'SAMP_QUERY_FLOOD',
+                    pps: Math.round(queryPackets / (this.configs.analysisInterval / 1000)),
+                    severity: 'MEDIUM'
+                });
+
                 await FirewallService.blacklistIp(ip, 3600); // Chặn 1 tiếng
                 this.state.ipStats.delete(ip);
                 continue;

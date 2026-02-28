@@ -12,8 +12,12 @@ const SystemService = {
         cpu: 0,
         mem: 0,
         disk: 0,
-        uptime: 0
+        uptime: 0,
+        netIn: 0, // Bps (Bytes per second)
+        netOut: 0
     },
+
+    lastNet: { in: 0, out: 0, ts: 0 },
 
     start() {
         console.log('[SYSTEM-SERVICE] Metrics collection started.');
@@ -38,6 +42,23 @@ const SystemService = {
             this.stats.disk = stdout.trim();
         } catch (e) {
             this.stats.disk = 0;
+        }
+
+        // 5. Network Bitrate (bps)
+        try {
+            const { stdout } = await execAsync("cat /proc/net/dev | grep eth0 | awk '{print $2, $10}'");
+            const [bytesIn, bytesOut] = stdout.trim().split(' ').map(Number);
+            const now = Date.now();
+
+            if (this.lastNet.ts > 0) {
+                const diffTs = (now - this.lastNet.ts) / 1000;
+                this.stats.netIn = Math.round(((bytesIn - this.lastNet.in) * 8) / diffTs); // bits per second
+                this.stats.netOut = Math.round(((bytesOut - this.lastNet.out) * 8) / diffTs);
+            }
+
+            this.lastNet = { in: bytesIn, out: bytesOut, ts: now };
+        } catch (e) {
+            // Skip net monitor if eth0 not found
         }
 
         // Broadcast cho Frontend

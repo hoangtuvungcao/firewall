@@ -63,6 +63,11 @@
                     <div class="stat-trend down"><i class="fas fa-arrow-down"></i> 2.1%</div>
                 </div>
                 <div class="stat-card">
+                    <div class="stat-label">Network Bitrate</div>
+                    <div class="stat-value" id="net-value">0.00 Mbps</div>
+                    <div class="stat-trend down"><i class="fas fa-chart-line"></i> Monitoring</div>
+                </div>
+                <div class="stat-card">
                     <div class="stat-label">Blocked IPs</div>
                     <div class="stat-value" id="blocked-value">0</div>
                     <div class="stat-trend up"><i class="fas fa-arrow-up"></i> 124 today</div>
@@ -148,36 +153,65 @@
             <!-- Charts -->
             <section class="charts-area animate-fade" style="animation-delay: 0.2s;">
                 <div class="chart-card">
-                    <h3>Network Throughput (PPS)</h3>
+                    <h3>System Resources (%)</h3>
+                    <canvas id="systemChart"></canvas>
                 </div>
-    </div>
-    </section>
+            </section>
 
-    <!-- Recent Incidents -->
-    <section class="table-card animate-fade" style="animation-delay: 0.3s;">
-        <h3>Recent Security Actions</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Timestamp</th>
-                    <th>Source IP</th>
-                    <th>Action</th>
-                    <th>Reason</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody id="incidents-body">
-                <tr>
-                    <td>2026-02-28 14:30:05</td>
-                    <td>14.233.217.88</td>
-                    <td>Blacklisted</td>
-                    <td>RakNet Handshake Flood</td>
-                    <td><span class="status-pill blocked">Blocked</span></td>
-                </tr>
-            </tbody>
-        </table>
-    </section>
-    </main>
+            <!-- Attack History Table -->
+            <section class="chart-card animate-fade" style="margin-top: 2rem; animation-delay: 0.3s;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h3><i class="fas fa-history"></i> Recent Attack Forensics</h3>
+                    <button class="btn-mode" onclick="refreshLogs()">Refresh Logs</button>
+                </div>
+                <div class="table-container">
+                    <table id="attack-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Source IP</th>
+                                <th>Type</th>
+                                <th>PPS</th>
+                                <th>Severity</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attack-body">
+                            <!-- Logs will be injected here -->
+                            <tr>
+                                <td colspan="6" style="text-align:center; padding: 2rem; color: var(--text-dim);">No
+                                    recent attacks detected.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Recent Incidents -->
+            <section class="table-card animate-fade" style="animation-delay: 0.3s;">
+                <h3>Recent Security Actions</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Source IP</th>
+                            <th>Action</th>
+                            <th>Reason</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="incidents-body">
+                        <tr>
+                            <td>2026-02-28 14:30:05</td>
+                            <td>14.233.217.88</td>
+                            <td>Blacklisted</td>
+                            <td>RakNet Handshake Flood</td>
+                            <td><span class="status-pill blocked">Blocked</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+        </main>
     </div>
 
     <script src="app.js"></script>

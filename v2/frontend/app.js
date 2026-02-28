@@ -90,6 +90,12 @@ socket.onmessage = (event) => {
         updateSystemUI(data.data);
     } else if (data.type === 'SAMP_STATUS') {
         updateSAMPUI(data.data);
+    } else if (data.type === 'NEW_ATTACK_LOG') {
+        updateAttackLogs(data.data);
+    } else if (data.type === 'RECENT_ATTACKS') {
+        const tbody = document.getElementById('attack-body');
+        tbody.innerHTML = '';
+        data.data.forEach(log => updateAttackLogs(log));
     }
 };
 
@@ -115,6 +121,13 @@ function updateSystemUI(data) {
     document.getElementById('cpu-value').innerText = data.cpu + '%';
     document.getElementById('ram-value').innerText = data.mem + '%';
 
+    // Convert bits to Mbps
+    const mbps = (data.netIn / 1000000).toFixed(2);
+    // Nếu có div net-value thì update
+    if (document.getElementById('net-value')) {
+        document.getElementById('net-value').innerText = mbps + ' Mbps';
+    }
+
     const now = new Date().toLocaleTimeString();
     systemData.labels.push(now);
     systemData.datasets[0].data.push(data.cpu);
@@ -126,6 +139,30 @@ function updateSystemUI(data) {
         systemData.datasets[1].data.shift();
     }
     systemChart.update('none');
+}
+
+function updateAttackLogs(data) {
+    const tbody = document.getElementById('attack-body');
+    // Remove empty message if exists
+    if (tbody.innerText.includes('No recent attacks')) tbody.innerHTML = '';
+
+    const tr = document.createElement('tr');
+    tr.className = 'animate-fade';
+    tr.innerHTML = `
+        <td>${new Date().toLocaleTimeString()}</td>
+        <td>${data.ip}</td>
+        <td>${data.type}</td>
+        <td>${data.pps}</td>
+        <td><span class="severity-${data.severity.toLowerCase()}">${data.severity}</span></td>
+        <td>${data.action || 'BLOCKED'}</td>
+    `;
+
+    tbody.prepend(tr);
+    if (tbody.children.length > 50) tbody.lastElementChild.remove();
+}
+
+function refreshLogs() {
+    socket.send(JSON.stringify({ type: 'GET_RECENT_ATTACKS' }));
 }
 
 function serverAction(action) {

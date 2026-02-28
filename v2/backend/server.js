@@ -9,6 +9,7 @@ const SmartGeofence = require('./services/smart_geofence.service');
 const SystemService = require('./services/system.service');
 const SAMPService = require('./services/samp.service');
 const FirewallService = require('./services/firewall.service');
+const AttackLogService = require('./services/attack_log.service');
 
 const app = express();
 const server = http.createServer(app);
@@ -29,9 +30,13 @@ app.use(cors());
 app.use(express.json());
 
 // WebSocket Logic
-wss.on('connection', (ws) => {
+wss.on('connection', async (ws) => {
     console.log('[V2-WS] Client connected');
     ws.send(JSON.stringify({ type: 'WELCOME', message: 'NRO Shield v2 API' }));
+
+    // Gửi ngay 50 log gần nhất khi mới kết nối
+    const logs = await AttackLogService.getRecent(50);
+    ws.send(JSON.stringify({ type: 'RECENT_ATTACKS', data: logs }));
 
     ws.on('message', async (message) => {
         try {
@@ -46,6 +51,9 @@ wss.on('connection', (ws) => {
                 } else {
                     await SystemService.controlServer(data.action);
                 }
+            } else if (data.type === 'GET_RECENT_ATTACKS') {
+                const logs = await AttackLogService.getRecent(50);
+                ws.send(JSON.stringify({ type: 'RECENT_ATTACKS', data: logs }));
             }
         } catch (e) {
             console.error('[V2-WS] Message Error:', e.message);
@@ -60,10 +68,11 @@ app.get('/api/health', (req, res) => {
 
 // Start Server
 const PORT = process.env.PORT || 5050; // Dùng port khác bản cũ
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', async () => {
     console.log(`[NRO Shield v2] Running on port ${PORT}`);
 
     // Khởi chạy các dịch vụ
+    await AttackLogService.init(); // Đảm bảo bảng db đã có
     ShieldAI.start();
     SmartGeofence.start();
     SystemService.start();

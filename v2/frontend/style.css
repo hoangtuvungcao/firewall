@@ -23,6 +23,24 @@
     .grid-2 {
         grid-template-columns: 1fr;
     }
+
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 576px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .header-actions {
+        display: none;
+    }
+
+    .chart-card {
+        padding: 1rem;
+    }
 }
 
 * {
@@ -369,6 +387,51 @@ td {
 .action-flush:hover {
     color: var(--info);
     box-shadow: 0 5px 15px rgba(59, 130, 246, 0.2);
+}
+
+/* Table Styling */
+.table-container {
+    overflow-x: auto;
+    margin-top: 1rem;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+th {
+    padding: 1rem;
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+}
+
+td {
+    padding: 1rem;
+    color: var(--text);
+    font-size: 0.875rem;
+    border-bottom: 1px solid var(--border);
+}
+
+tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.severity-high {
+    color: var(--error);
+    font-weight: bold;
+}
+
+.severity-medium {
+    color: var(--warning);
+}
+
+.severity-low {
+    color: var(--info);
 }
 
 /* Buttons */
