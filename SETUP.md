@@ -98,7 +98,6 @@ Các biến khác có thể giữ giá trị mặc định:
 | Biến | Mặc định | Ý nghĩa |
 |------|----------|---------|
 | `API_PORT` | `5000` | Port API Backend |
-| `WEB_PORT` | `3000` | Port Web Panel |
 | `AI_ENGINE_PORT` | `8000` | Port AI Engine |
 | `PROXY_PORT_RANGE_START` | `30000` | Port bắt đầu cho proxy shield |
 | `PROXY_PORT_RANGE_END` | `60000` | Port kết thúc cho proxy shield |

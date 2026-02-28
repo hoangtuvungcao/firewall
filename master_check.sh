@@ -21,7 +21,6 @@ check_service() {
 echo "1. System Services Status:"
 check_service nroshield-api "Backend API"
 check_service nroshield-ai  "AI Engine"
-check_service nroshield-web "Web Panel"
 check_service nroshield-bot "Telegram Bot"
 
 echo -e "\n2. Port Connectivity:"
