@@ -85,6 +85,9 @@ function updateTrafficChart(metrics) {
   }
 
   trafficChartInstance.update('none'); // Update without full animation for smoother real-time
+
+  if (metrics.cpu_usage !== undefined) document.getElementById('stat-cpu').textContent = metrics.cpu_usage + '%';
+  if (metrics.ram_usage !== undefined) document.getElementById('stat-ram').textContent = metrics.ram_usage + '%';
 }
 
 // === Toast ===

@@ -108,6 +108,8 @@ TOTAL_CONN=$(count_total_proxy_connections)
 CONNTRACK_COUNT=$(cat /proc/sys/net/netfilter/nf_conntrack_count 2>/dev/null || echo "0")
 CONNTRACK_MAX=$(cat /proc/sys/net/netfilter/nf_conntrack_max 2>/dev/null || echo "0")
 RX_BYTES=$(get_interface_stats)
+CPU_USAGE=$(top -bn1 | grep "Cpu(s)" | awk '{print 100 - $8}')
+RAM_USAGE=$(free -m | awk '/Mem:/ { printf("%.1f", $3/$2 * 100) }')
 
 # === Top IPs ===
 TOP_IPS=$(get_top_ips 5)
@@ -185,6 +187,8 @@ cat > "$JSON_OUTPUT" << JSONEOF
     "conntrack_count": ${CONNTRACK_COUNT},
     "conntrack_max": ${CONNTRACK_MAX},
     "rx_bytes": ${RX_BYTES},
+    "cpu_usage": "${CPU_USAGE:-0}",
+    "ram_usage": "${RAM_USAGE:-0}",
     "alert_triggered": ${ALERT_TRIGGERED}
 }
 JSONEOF
