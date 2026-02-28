@@ -4,6 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const http = require('http');
 const { WebSocketServer } = require('ws');
+const ShieldAI = require('./services/ai_analyzer.service');
 
 const app = express();
 const server = http.createServer(app);
@@ -29,4 +30,7 @@ app.get('/api/health', (req, res) => {
 const PORT = process.env.PORT || 5050; // Dùng port khác bản cũ
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`[NRO Shield v2] Running on port ${PORT}`);
+
+    // Khởi chạy AI Shield
+    ShieldAI.start();
 });
