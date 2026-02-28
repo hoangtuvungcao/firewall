@@ -212,11 +212,14 @@ iptables -A INPUT -p icmp --icmp-type echo-request -j DROP
 # ============================================================================
 log_info "Cho phép proxy port range ${PROXY_PORT_RANGE_START}-${PROXY_PORT_RANGE_END}..."
 
-# Connection limit per IP cho proxy ports
-iptables -A INPUT -p tcp --dport "$PROXY_PORT_RANGE_START":"$PROXY_PORT_RANGE_END" \
+# Giới hạn Connection limits per IP cho TCP Proxy (nếu vào thẳng VPS)
+iptables -A INPUT -p tcp -m conntrack --ctorigdstport "$PROXY_PORT_RANGE_START":"$PROXY_PORT_RANGE_END" \
     -m connlimit --connlimit-above "$MAX_CONN_PER_IP" --connlimit-mask 32 -j DROP
 
-iptables -A INPUT -p tcp --dport "$PROXY_PORT_RANGE_START":"$PROXY_PORT_RANGE_END" \
+# TCP + UDP: Cho phép connection mới
+iptables -A INPUT -p tcp -m conntrack --ctorigdstport "$PROXY_PORT_RANGE_START":"$PROXY_PORT_RANGE_END" \
+    -m conntrack --ctstate NEW -j ACCEPT
+iptables -A INPUT -p udp -m conntrack --ctorigdstport "$PROXY_PORT_RANGE_START":"$PROXY_PORT_RANGE_END" \
     -m conntrack --ctstate NEW -j ACCEPT
 
 # ============================================================================
@@ -224,8 +227,8 @@ iptables -A INPUT -p tcp --dport "$PROXY_PORT_RANGE_START":"$PROXY_PORT_RANGE_EN
 # ============================================================================
 log_info "Thiết lập FORWARD rules..."
 
-# Cho phép forward traffic đã DNAT
-iptables -A FORWARD -p tcp --dport "$PROXY_PORT_RANGE_START":"$PROXY_PORT_RANGE_END" \
+# Giới hạn Connection limits cho FORWARD (DNAT external server)
+iptables -A FORWARD -p tcp -m conntrack --ctorigdstport "$PROXY_PORT_RANGE_START":"$PROXY_PORT_RANGE_END" \
     -m connlimit --connlimit-above "$MAX_CONN_PER_IP" --connlimit-mask 32 -j DROP
 
 iptables -A FORWARD -m conntrack --ctstate NEW -j ACCEPT

@@ -300,7 +300,7 @@ class _AdminScreenState extends State<AdminScreen>
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Max: ${k['max_servers']} servers, ${k['max_ports_per_server']} ports | User: ${k['username'] ?? 'chưa gán'}',
+                          'Max: ${k['max_servers']} servers, ${k['max_ports_per_server']} ports | User: ${k['assigned_to'] ?? 'chưa gán'}',
                           style:
                               TextStyle(fontSize: 11, color: Colors.grey[500]),
                         ),

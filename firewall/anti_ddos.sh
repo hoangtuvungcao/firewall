@@ -142,21 +142,37 @@ log_ok "RST Flood protection đã thiết lập"
 # ============================================================================
 log_info "Thiết lập chống Connection Exhaustion..."
 
-# Giới hạn connection đồng thời per IP trên proxy ports
+# Giới hạn connection đồng thời per IP trên proxy ports (TCP & UDP)
 iptables -I FORWARD 3 -p tcp \
-    --dport "$PROXY_PORT_RANGE_START":"$PROXY_PORT_RANGE_END" \
+    -m conntrack --ctorigdstport "$PROXY_PORT_RANGE_START":"$PROXY_PORT_RANGE_END" \
+    -m connlimit --connlimit-above "$MAX_CONN_PER_IP" --connlimit-mask 32 \
+    -j DROP
+iptables -I FORWARD 3 -p udp \
+    -m conntrack --ctorigdstport "$PROXY_PORT_RANGE_START":"$PROXY_PORT_RANGE_END" \
     -m connlimit --connlimit-above "$MAX_CONN_PER_IP" --connlimit-mask 32 \
     -j DROP
 
-# Giới hạn new connection rate per IP
-iptables -I FORWARD 4 -p tcp \
-    --dport "$PROXY_PORT_RANGE_START":"$PROXY_PORT_RANGE_END" \
+# Giới hạn new connection rate per IP (TCP)
+iptables -I FORWARD 3 -p tcp \
+    -m conntrack --ctorigdstport "$PROXY_PORT_RANGE_START":"$PROXY_PORT_RANGE_END" \
     -m conntrack --ctstate NEW \
     -m hashlimit \
     --hashlimit-above "$NEW_CONN_RATE" \
     --hashlimit-burst "$NEW_CONN_BURST" \
     --hashlimit-mode srcip \
-    --hashlimit-name new_conn \
+    --hashlimit-name new_conn_tcp \
+    --hashlimit-htable-expire 30000 \
+    -j DROP
+
+# Giới hạn new connection rate per IP (UDP)
+iptables -I FORWARD 3 -p udp \
+    -m conntrack --ctorigdstport "$PROXY_PORT_RANGE_START":"$PROXY_PORT_RANGE_END" \
+    -m conntrack --ctstate NEW \
+    -m hashlimit \
+    --hashlimit-above "$NEW_CONN_RATE" \
+    --hashlimit-burst "$NEW_CONN_BURST" \
+    --hashlimit-mode srcip \
+    --hashlimit-name new_conn_udp \
     --hashlimit-htable-expire 30000 \
     -j DROP
 

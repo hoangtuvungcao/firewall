@@ -14,16 +14,34 @@ class ApiService {
         if (_token != null) 'Authorization': 'Bearer $_token',
       };
 
+  dynamic _process(http.Response res) {
+    dynamic data;
+    try {
+      data = jsonDecode(res.body);
+    } catch (e) {
+      if (res.statusCode >= 200 && res.statusCode < 300) return null;
+      throw Exception('Error ${res.statusCode}: ${res.body}');
+    }
+
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      return data;
+    }
+
+    final msg = data is Map && data['error'] != null
+        ? data['error']
+        : 'Failed with status ${res.statusCode}';
+    throw Exception(msg);
+  }
+
   Future<Map<String, dynamic>> login(String username, String password) async {
     final res = await http.post(
       Uri.parse('$baseUrl/api/auth/login'),
       headers: _headers,
       body: jsonEncode({'username': username, 'password': password}),
     );
-    final data = jsonDecode(res.body);
-    if (res.statusCode != 200) throw Exception(data['error'] ?? 'Login failed');
+    final data = _process(res);
     _token = data['token'];
-    return data;
+    return data as Map<String, dynamic>;
   }
 
   Future<Map<String, dynamic>> register(
@@ -40,28 +58,21 @@ class ApiService {
         'key_code': keyCode,
       }),
     );
-    final data = jsonDecode(res.body);
-    if (res.statusCode != 200 && res.statusCode != 201) {
-      throw Exception(data['error'] ?? 'Register failed');
-    }
+    final data = _process(res);
     _token = data['token'];
-    return data;
+    return data as Map<String, dynamic>;
   }
 
   Future<Map<String, dynamic>> getSummary() async {
-    final res = await http.get(
-      Uri.parse('$baseUrl/api/stats/summary'),
-      headers: _headers,
-    );
-    return jsonDecode(res.body);
+    final res = await http.get(Uri.parse('$baseUrl/api/stats/summary'),
+        headers: _headers);
+    return _process(res) as Map<String, dynamic>;
   }
 
   Future<List> getServers() async {
-    final res = await http.get(
-      Uri.parse('$baseUrl/api/servers'),
-      headers: _headers,
-    );
-    return jsonDecode(res.body);
+    final res =
+        await http.get(Uri.parse('$baseUrl/api/servers'), headers: _headers);
+    return _process(res) as List;
   }
 
   Future<Map<String, dynamic>> addServer(String name, String ip) async {
@@ -70,19 +81,13 @@ class ApiService {
       headers: _headers,
       body: jsonEncode({'name': name, 'target_ip': ip}),
     );
-    final data = jsonDecode(res.body);
-    if (res.statusCode != 200 && res.statusCode != 201) {
-      throw Exception(data['error'] ?? 'Failed');
-    }
-    return data;
+    return _process(res) as Map<String, dynamic>;
   }
 
   Future<List> getProxies() async {
-    final res = await http.get(
-      Uri.parse('$baseUrl/api/proxy'),
-      headers: _headers,
-    );
-    return jsonDecode(res.body);
+    final res =
+        await http.get(Uri.parse('$baseUrl/api/proxy'), headers: _headers);
+    return _process(res) as List;
   }
 
   Future<Map<String, dynamic>> createProxy(
@@ -99,76 +104,64 @@ class ApiService {
         'protocol': protocol,
       }),
     );
-    final data = jsonDecode(res.body);
-    if (res.statusCode != 200 && res.statusCode != 201) {
-      throw Exception(data['error'] ?? 'Failed');
-    }
-    return data;
+    return _process(res) as Map<String, dynamic>;
   }
 
   Future<void> toggleProxy(int id) async {
-    await http.put(
-      Uri.parse('$baseUrl/api/proxy/$id/toggle'),
-      headers: _headers,
-    );
+    final res = await http.put(Uri.parse('$baseUrl/api/proxy/$id/toggle'),
+        headers: _headers);
+    _process(res);
   }
 
   Future<void> deleteProxy(int id) async {
-    await http.delete(Uri.parse('$baseUrl/api/proxy/$id'), headers: _headers);
+    final res = await http.delete(Uri.parse('$baseUrl/api/proxy/$id'),
+        headers: _headers);
+    _process(res);
   }
 
   Future<List> getAttacks({int limit = 20}) async {
     final res = await http.get(
-      Uri.parse('$baseUrl/api/stats/attacks?limit=$limit'),
-      headers: _headers,
-    );
-    return jsonDecode(res.body);
+        Uri.parse('$baseUrl/api/stats/attacks?limit=$limit'),
+        headers: _headers);
+    return _process(res) as List;
   }
 
   Future<void> deleteServer(int id) async {
-    await http.delete(Uri.parse('$baseUrl/api/servers/$id'), headers: _headers);
+    final res = await http.delete(Uri.parse('$baseUrl/api/servers/$id'),
+        headers: _headers);
+    _process(res);
   }
 
   // === ADMIN APIs ===
 
   Future<Map<String, dynamic>> getAdminStats() async {
-    final res = await http.get(
-      Uri.parse('$baseUrl/api/admin/stats'),
-      headers: _headers,
-    );
-    return jsonDecode(res.body);
+    final res = await http.get(Uri.parse('$baseUrl/api/admin/stats'),
+        headers: _headers);
+    return _process(res) as Map<String, dynamic>;
   }
 
   Future<List> getAdminUsers() async {
-    final res = await http.get(
-      Uri.parse('$baseUrl/api/admin/users'),
-      headers: _headers,
-    );
-    return jsonDecode(res.body);
+    final res = await http.get(Uri.parse('$baseUrl/api/admin/users'),
+        headers: _headers);
+    return _process(res) as List;
   }
 
   Future<List> getAdminKeys() async {
-    final res = await http.get(
-      Uri.parse('$baseUrl/api/keys'),
-      headers: _headers,
-    );
-    return jsonDecode(res.body);
+    final res =
+        await http.get(Uri.parse('$baseUrl/api/keys'), headers: _headers);
+    return _process(res) as List;
   }
 
   Future<List> getAdminServers() async {
-    final res = await http.get(
-      Uri.parse('$baseUrl/api/admin/servers'),
-      headers: _headers,
-    );
-    return jsonDecode(res.body);
+    final res = await http.get(Uri.parse('$baseUrl/api/admin/servers'),
+        headers: _headers);
+    return _process(res) as List;
   }
 
   Future<List> getAdminProxies() async {
-    final res = await http.get(
-      Uri.parse('$baseUrl/api/admin/proxies'),
-      headers: _headers,
-    );
-    return jsonDecode(res.body);
+    final res = await http.get(Uri.parse('$baseUrl/api/admin/proxies'),
+        headers: _headers);
+    return _process(res) as List;
   }
 
   Future<Map<String, dynamic>> createKey({
@@ -187,11 +180,7 @@ class ApiService {
         'max_bandwidth_mbps': bandwidth,
       }),
     );
-    final data = jsonDecode(res.body);
-    if (res.statusCode != 200 && res.statusCode != 201) {
-      throw Exception(data['error'] ?? 'Failed');
-    }
-    return data;
+    return _process(res) as Map<String, dynamic>;
   }
 
   Future<void> updateKey(int id, Map<String, dynamic> updates) async {
@@ -200,23 +189,21 @@ class ApiService {
       headers: _headers,
       body: jsonEncode(updates),
     );
-    if (res.statusCode != 200) {
-      throw Exception(jsonDecode(res.body)['error'] ?? 'Failed');
-    }
+    _process(res);
   }
 
   Future<void> toggleUser(int id) async {
-    await http.put(
-      Uri.parse('$baseUrl/api/admin/users/$id/toggle'),
-      headers: _headers,
-    );
+    final res = await http.put(Uri.parse('$baseUrl/api/admin/users/$id/toggle'),
+        headers: _headers);
+    _process(res);
   }
 
   Future<void> changeUserRole(int id, String role) async {
-    await http.put(
+    final res = await http.put(
       Uri.parse('$baseUrl/api/admin/users/$id/role'),
       headers: _headers,
       body: jsonEncode({'role': role}),
     );
+    _process(res);
   }
 }

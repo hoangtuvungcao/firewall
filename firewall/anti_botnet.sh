@@ -139,8 +139,13 @@ log_info "Thiết lập cron job tự động cập nhật..."
 SCRIPT_PATH="$(readlink -f "$0")"
 CRON_JOB="0 */6 * * * ${SCRIPT_PATH} >> ${LOG_FILE} 2>&1"
 
-# Thêm vào crontab nếu chưa có
-(crontab -l 2>/dev/null | grep -v "anti_botnet.sh"; echo "$CRON_JOB") | sort -u | crontab -
+# Thêm vào crontab nếu chưa có (dùng file tạm để tránh lỗi set -e với grep rỗng)
+TMP_CRON=$(mktemp)
+crontab -l > "$TMP_CRON" 2>/dev/null || true
+grep -v "anti_botnet.sh" "$TMP_CRON" > "${TMP_CRON}.new" || true
+echo "$CRON_JOB" >> "${TMP_CRON}.new"
+crontab "${TMP_CRON}.new"
+rm -f "$TMP_CRON" "${TMP_CRON}.new"
 
 log_ok "Cron job: cập nhật mỗi 6 giờ"
 
