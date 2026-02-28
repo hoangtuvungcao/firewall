@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NRO Shield v2 | Perfect Direct Protection</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="fas fa-shield-halved"></i>
+                <span>NRO SHIELD <span style="font-size: 0.7em; opacity: 0.5;">v2</span></span>
+            </div>
+
+            <nav class="nav-links">
+                <a href="#" class="nav-item active"><i class="fas fa-chart-line"></i> Dashboard</a>
+                <a href="#" class="nav-item"><i class="fas fa-user-shield"></i> IP Rules</a>
+                <a href="#" class="nav-item"><i class="fas fa-key"></i> Licenses</a>
+                <a href="#" class="nav-item"><i class="fas fa-cog"></i> Settings</a>
+            </nav>
+
+            <div style="margin-top: auto;">
+                <div class="nav-item" style="color: var(--error);">
+                    <i class="fas fa-power-off"></i> Logout
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="animate-fade">
+                <div>
+                    <h1>System Overview</h1>
+                    <p style="color: var(--text-dim);">Live monitoring for 103.77.246.150</p>
+                </div>
+                <div class="user-info">
+                    <button class="btn-primary"><i class="fas fa-plus"></i> Add Rule</button>
+                </div>
+            </header>
+
+            <!-- Stats -->
+            <section class="stats-grid animate-fade" style="animation-delay: 0.1s;">
+                <div class="stat-card">
+                    <div class="stat-label">Realtime Traffic</div>
+                    <div class="stat-value" id="traffic-value">0 Mbps</div>
+                    <div class="stat-trend up"><i class="fas fa-arrow-up"></i> 12.5%</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Active Connections</div>
+                    <div class="stat-value" id="conn-value">0</div>
+                    <div class="stat-trend up"><i class="fas fa-arrow-up"></i> 4.2%</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">CPU Usage</div>
+                    <div class="stat-value" id="cpu-value">0%</div>
+                    <div class="stat-trend down"><i class="fas fa-arrow-down"></i> 2.1%</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Blocked IPs</div>
+                    <div class="stat-value" id="blocked-value">0</div>
+                    <div class="stat-trend up"><i class="fas fa-arrow-up"></i> 124 today</div>
+                </div>
+            </section>
+
+            <!-- Charts -->
+            <section class="charts-area animate-fade" style="animation-delay: 0.2s;">
+                <div class="chart-card">
+                    <h3>Network Throughput (PPS)</h3>
+                    <div style="height: 300px; margin-top: 1rem;">
+                        <canvas id="trafficChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3>Protocol Distribution</h3>
+                    <div style="height: 300px; margin-top: 1rem;">
+                        <canvas id="protocolChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Recent Incidents -->
+            <section class="table-card animate-fade" style="animation-delay: 0.3s;">
+                <h3>Recent Security Actions</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Source IP</th>
+                            <th>Action</th>
+                            <th>Reason</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="incidents-body">
+                        <tr>
+                            <td>2026-02-28 14:30:05</td>
+                            <td>14.233.217.88</td>
+                            <td>Blacklisted</td>
+                            <td>RakNet Handshake Flood</td>
+                            <td><span class="status-pill blocked">Blocked</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
