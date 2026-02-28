@@ -18,12 +18,16 @@ const ShieldAI = {
     },
 
     /**
-     * Khởi chạy trình theo dõi AI
-     */
+   * Khởi chạy trình theo dõi AI
+   */
     start() {
-        console.log('[SHIELD-AI] Engine started and monitoring patterns...');
+        console.log('[SHIELD-AI] Engine started. Realtime XDP Sync enabled.');
 
-        // Sử dụng tcpdump để "ngửi" gói tin thô (chỉ lấy header để tiết kiệm CPU)
+        // Khởi tạo map cho XDP nếu có tool bpftool
+        exec('bpftool map show name blacklist_map', (err) => {
+            if (err) console.warn('[SHIELD-AI] XDP Map not found. Falling back to IPSet.');
+        });
+
         const monitorCmd = `tcpdump -n -i any -l "udp port 7777"`;
         const monitorProcess = exec(monitorCmd);
 
@@ -70,8 +74,12 @@ const ShieldAI = {
             // 1. Nhận diện Handshake Flood (RakNet 546 bytes)
             const handshakePackets = stats.sizes.filter(s => s === 546).length;
             if (handshakePackets > this.configs.maxHandshakesPerSecond) {
-                console.warn(`[SHIELD-AI] ALERT: Handshake Flood detected from ${ip}. Blocking...`);
-                await FirewallService.blacklistIp(ip, 7200); // Chặn 2 tiếng
+                console.warn(`[SHIELD-AI] ALERT: Handshake Flood from ${ip}. Pushing to XDP Driver Layer.`);
+
+                // PUSH THẲNG VÀO XDP MAP (Bypass Kernel hoàn toàn cho tương lai)
+                exec(`bpftool map update name blacklist_map key hex ${this.ipToHex(ip)} value hex 01`);
+
+                await FirewallService.blacklistIp(ip, 7200);
                 this.state.ipStats.delete(ip);
                 continue;
             }
@@ -90,6 +98,15 @@ const ShieldAI = {
                 this.state.ipStats.delete(ip);
             }
         }
+    },
+
+    /**
+     * Chuyển IP sang Hex để dùng cho bpftool
+     */
+    ipToHex(ip) {
+        const parts = ip.split('.').map(p => parseInt(p).toString(16).padStart(2, '0'));
+        // network byte order (little endian for x86)
+        return parts.reverse().join(' ');
     }
 };
 
