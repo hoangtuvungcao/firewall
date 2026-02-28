@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const TelegramService = require('./telegram.service');
 
 /**
  * ATTACK LOGS SERVICE
@@ -45,6 +46,9 @@ const AttackLogService = {
                 data.severity || 'MEDIUM',
                 data.action || 'BLOCKED'
             ]);
+
+            // Gửi thông báo Telegram nếu có cấu hình
+            await TelegramService.logAttack(data);
 
             // Update real-time cho Dashboard
             if (global.broadcast) {
