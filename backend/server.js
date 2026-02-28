@@ -137,6 +137,7 @@ async function start() {
         server.listen(PORT, '0.0.0.0', () => {
             console.log(`[NRO Shield] API running on port ${PORT}`);
             console.log(`[NRO Shield] WebSocket on ws://0.0.0.0:${PORT}/ws`);
+            syncFirewallRules();
         });
     } catch (err) {
         console.error('[FATAL] Cannot start server:', err.message);
