@@ -297,3 +297,34 @@ Nếu trong quá trình có lỗi, gõ các lệnh sau để check:
 - Log API: `journalctl -u nroshield-api -n 50 -f`
 - Log Bot: `journalctl -u nroshield-bot -n 50 -f`
 - Log AI: `journalctl -u nroshield-ai -n 50 -f`
+
+---
+
+## 🚀 Phần 9: Các Script Hỗ Trợ Có Sẵn (Tùy Chọn)
+
+Trong thư mục gốc của dự án (`/opt/nroshield`) đã tích hợp sẵn một số script giúp bạn quản trị hệ thống nhanh chóng hơn mà không cần nhớ lệnh phức tạp.
+
+Đầu tiên, hãy cấp quyền thực thi cho tất cả script:
+```bash
+cd /opt/nroshield
+chmod +x *.sh
+```
+
+### 1. Script Kiểm tra Sức khỏe Hệ thống (`master_check.sh`)
+Kiểm tra nhanh toàn bộ trạng thái của Nginx, API, Bot, AI Engine, Database, và Network NAT:
+```bash
+./master_check.sh
+```
+
+### 2. Script Cập nhật Mã Nguồn (`deploy.sh`)
+Khi mã nguồn trên kho GitHub có bản cập nhật mới (fix lỗi hoặc thêm tính năng), bạn không cần cài lại từ đầu. Chỉ cần chạy script này, nó sẽ tự động `git pull`, cài thư viện mới và khởi động lại toàn bộ:
+```bash
+./deploy.sh
+```
+
+### 3. Script Dọn dẹp Log định kỳ (`cleanup_logs.sh`)
+Theo thời gian, bảng `attack_logs` và `ai_traffic_snapshots` trong Database sẽ phình to. Nếu ổ cứng VPS bị đầy, chạy lệnh này để dọn dẹp log cũ hơn 30 ngày:
+```bash
+./cleanup_logs.sh
+```
+*(Bạn cũng có thể cài Crontab định kỳ chạy tự động script này mỗi tháng 1 lần).*
