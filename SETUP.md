@@ -118,29 +118,50 @@ deactivate
 
 ---
 
-## 📌 Phần 5: Cấu hình Mạng & Firewall NAT (Rất Quan trọng)
+## 📌 Phần 5: Thiết lập Firewall Cấp Cao (Thư mục `firewall/`)
 
-Bắt buộc phải chạy các lệnh này để IP Tables chuyển tiếp được port:
+Dự án có cung cấp sẵn một bộ scripts chuyên sâu để tự động cài đặt và tối ưu hóa hệ thống phòng thủ bên trong thư mục `firewall`. Thay vì gõ toàn bộ lệnh iptables thủ công ở trên, bạn **BẮT BUỘC** phải chạy các script này để hệ thống đạt sức mạnh lớn nhất!
 
-**1. Bật IP Forwarding:**
+Mở thư mục chứa các script tường lửa và cấp quyền thực thi:
 ```bash
-echo "net.ipv4.ip_forward = 1" > /etc/sysctl.d/99-ipforward.conf
-sysctl -p /etc/sysctl.d/99-ipforward.conf
+cd /opt/nroshield/firewall
+chmod +x *.sh
 ```
 
-**2. Tạo Blacklist cho AI và chặn từ chối dịch vụ (DDoS):**
-```bash
-ipset create nroshield-ai-blocked hash:ip timeout 3600 -exist
-ipset create nroshield-ratelimited hash:ip timeout 600 -exist
+Tiếp theo, hãy chạy **lần lượt từng file một** theo thứ tự dưới đây. Script sẽ tự động gọi tiếp file đằng sau nếu thành công:
 
-iptables -I INPUT -m set --match-set nroshield-ai-blocked src -j DROP
-iptables -I FORWARD -m set --match-set nroshield-ai-blocked src -j DROP
+**1. Cài đặt các gói phụ trợ Firewall (Fail2Ban, CrowdSec):**
+```bash
+./install.sh
 ```
 
-**3. Lưu quy tắc Firewall (Ngăn mất khi Reboot VPS):**
+**2. Tối ưu hóa Kernel (Sysctl Hardening) để chống TCP SYN Flood:**
 ```bash
-netfilter-persistent save
+./sysctl_hardening.sh
 ```
+
+**3. Thiết lập luật tường lửa gốc (Base Firewall Rules / NAT):**
+```bash
+./iptables_base.sh
+```
+
+**4. Thiết lập bộ quy tắc chống DDoS (Drop Invalid/Frags):**
+```bash
+./anti_ddos.sh
+```
+
+**5. Import danh sách IP Botnet bị cấm:**
+```bash
+./anti_botnet.sh
+```
+
+**6. Cấu hình Fail2Ban & CrowdSec (Phát hiện IP dò pass):**
+```bash
+./fail2ban_setup.sh
+./crowdsec_setup.sh
+```
+
+*(Lưu ý: Bạn không cần làm bước IP Forwarding và Iptables thủ công ở bản SETUP cũ nữa vì nhóm script này đã cấu hình sạch sẽ và tối ưu 10.000 lần cho bạn!)*
 
 ---
 
