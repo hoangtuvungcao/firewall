@@ -218,6 +218,54 @@ td {
     color: var(--error);
 }
 
+/* Geofencing UI */
+.btn-mode {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.btn-mode.active {
+    background: var(--primary);
+    color: #000;
+    border-color: var(--primary);
+    box-shadow: 0 0 15px rgba(0, 242, 254, 0.3);
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.status-circle {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 8px var(--success);
+}
+
+.status-circle.blocked {
+    background: var(--error);
+    box-shadow: 0 0 8px var(--error);
+}
+
+.status-text {
+    font-size: 0.875rem;
+    color: var(--text-dim);
+}
+
+.status-text strong {
+    color: var(--text);
+}
+
 /* Buttons */
 .btn-primary {
     background: linear-gradient(135deg, var(--primary), var(--secondary));

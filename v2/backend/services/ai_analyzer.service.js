@@ -1,5 +1,6 @@
 const { exec } = require('child_process');
 const FirewallService = require('./firewall.service');
+const SmartGeofence = require('./smart_geofence.service');
 
 /**
  * SHIELD AI v2 - Behavioral Analysis Engine
@@ -65,11 +66,15 @@ const ShieldAI = {
     },
 
     /**
-     * Giải thuật Heuristic: Phân tích hành vi tích lũy
-     */
+   * Giải thuật Heuristic: Phân tích hành vi tích lũy
+   */
     async analyzeHebbBehavior() {
         const now = Date.now();
+        let totalPPS = 0;
+
         for (const [ip, stats] of this.state.ipStats) {
+            // Tính toán PPS tổng cho Geofencing
+            totalPPS += stats.count;
 
             // 1. Nhận diện Handshake Flood (RakNet 546 bytes)
             const handshakePackets = stats.sizes.filter(s => s === 546).length;
@@ -97,6 +102,16 @@ const ShieldAI = {
             if (now - stats.lastTime > 60000) {
                 this.state.ipStats.delete(ip);
             }
+        }
+
+        // Gửi PPS tổng sang Smart Geofence để tự động bóp/mở quốc tế
+        const averagePPS = totalPPS / (this.configs.analysisInterval / 1000);
+        SmartGeofence.updateMetrics(averagePPS);
+
+        // Reset counters cho lần sau
+        for (const [ip, stats] of this.state.ipStats) {
+            stats.count = 0;
+            stats.sizes = [];
         }
     },
 

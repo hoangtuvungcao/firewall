@@ -59,8 +59,36 @@ socket.onmessage = (event) => {
     const data = JSON.parse(event.data);
     if (data.type === 'TRAFFIC_UPDATE') {
         updateUI(data.metrics);
+    } else if (data.type === 'GEOFENCE_STATUS') {
+        updateGeofenceUI(data.data);
     }
 };
+
+function updateGeofenceUI(data) {
+    const statusCircle = document.querySelector('.status-circle');
+    const statusText = document.querySelector('#geofence-status strong');
+    const timerText = document.querySelector('#geofence-timer strong');
+
+    statusText.innerText = data.status;
+
+    if (data.status === 'VN_ONLY') {
+        statusCircle.className = 'status-circle blocked';
+        const remaining = Math.max(0, 300 - Math.floor((Date.now() - data.lastDdos) / 1000));
+        timerText.innerText = `${Math.floor(remaining / 60)}m ${remaining % 60}s`;
+    } else {
+        statusCircle.className = 'status-circle';
+        timerText.innerText = 'Stable';
+    }
+
+    // Update Buttons
+    document.querySelectorAll('.btn-mode').forEach(btn => {
+        btn.classList.toggle('active', btn.innerText.includes(data.mode));
+    });
+}
+
+function setGeofence(mode) {
+    socket.send(JSON.stringify({ type: 'SET_GEOFENCE_MODE', mode }));
+}
 
 function updateUI(metrics) {
     // Update Stats

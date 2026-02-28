@@ -69,6 +69,33 @@
                 </div>
             </section>
 
+            <!-- Geofencing Control Panel -->
+            <section class="chart-card animate-fade"
+                style="margin-bottom: 2rem; animation-delay: 0.15s; border-left: 4px solid var(--primary);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h3><i class="fas fa-globe-americas"></i> Smart Geofencing Control</h3>
+                        <p style="color: var(--text-dim); font-size: 0.875rem;">Protects your server by limiting traffic
+                            to specific regions during DDoS.</p>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn-mode active" onclick="setGeofence('AUTO')">AUTO-SHIELD</button>
+                        <button class="btn-mode" onclick="setGeofence('VN_ONLY')">ALLOW VN ONLY</button>
+                        <button class="btn-mode" onclick="setGeofence('GLOBAL')">ALLOW GLOBAL</button>
+                    </div>
+                </div>
+                <div style="margin-top: 1.5rem; display: flex; gap: 2rem; align-items: center;">
+                    <div id="geofence-status" class="status-indicator">
+                        <span class="status-circle active"></span>
+                        <span class="status-text">Status: <strong>GLOBAL</strong></span>
+                    </div>
+                    <div class="status-indicator">
+                        <i class="fas fa-clock" style="color: var(--text-dim);"></i>
+                        <span id="geofence-timer" class="status-text">Auto-Restore In: <strong>Stable</strong></span>
+                    </div>
+                </div>
+            </section>
+
             <!-- Charts -->
             <section class="charts-area animate-fade" style="animation-delay: 0.2s;">
                 <div class="chart-card">
