@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const TelegramService = require('./telegram.service');
+const MeshService = require('./mesh.service');
 
 /**
  * ATTACK LOGS SERVICE
@@ -49,6 +50,9 @@ const AttackLogService = {
 
             // Gửi thông báo Telegram nếu có cấu hình
             await TelegramService.logAttack(data);
+
+            // Chia sẻ với các "đồng minh" trong hệ thống Mesh
+            MeshService.broadcastAttack(data.ip, data.type);
 
             // Update real-time cho Dashboard
             if (global.broadcast) {

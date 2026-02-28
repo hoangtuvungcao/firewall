@@ -10,6 +10,7 @@ const SystemService = require('./services/system.service');
 const SAMPService = require('./services/samp.service');
 const FirewallService = require('./services/firewall.service');
 const AttackLogService = require('./services/attack_log.service');
+const MeshService = require('./services/mesh.service');
 
 const app = express();
 const server = http.createServer(app);
@@ -66,6 +67,13 @@ wss.on('connection', async (ws) => {
                 ShieldAI.configs.maxQueriesPerSecond = data.data.query;
                 FirewallService.configs.blockDuration = data.data.block;
                 console.log('[CONFIG] Updated settings realtime.');
+            } else if (data.type === 'MESH_HELLO') {
+                // Xác thực đồng minh bằng Key
+                if (data.key === MeshService.config.clusterKey) {
+                    console.log(`[MESH] Trusted peer linked: ${data.ip}`);
+                }
+            } else if (data.type === 'MESH_SYNC_IP') {
+                MeshService.handleIpSync(data);
             }
         } catch (e) {
             console.error('[V2-WS] Message Error:', e.message);
@@ -89,4 +97,5 @@ server.listen(PORT, '0.0.0.0', async () => {
     SmartGeofence.start();
     SystemService.start();
     SAMPService.start();
+    MeshService.start();
 });
