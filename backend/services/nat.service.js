@@ -18,25 +18,26 @@ async function addNatRule(proxyPort, targetIp, targetPort, protocol = 'tcp') {
         const proto = protocol === 'both' ? ['tcp', 'udp'] : [protocol];
 
         for (const p of proto) {
-            // DNAT: redirect incoming traffic tới target
-            await execAsync(
-                `iptables -t nat -A PREROUTING -p ${p} --dport ${proxyPort} -j DNAT --to-destination ${targetIp}:${targetPort}`
-            );
+            // Kiểm tra xem rule đã tồn tại chưa để tránh trùng lặp
+            const checkDnat = `iptables -t nat -C PREROUTING -p ${p} --dport ${proxyPort} -j DNAT --to-destination ${targetIp}:${targetPort} 2>/dev/null`;
+            const { stdout: exists } = await execAsync(checkDnat).catch(() => ({ stdout: '' }));
 
-            // Allow FORWARD cho traffic này (nếu target là external server)
-            await execAsync(
-                `iptables -A FORWARD -p ${p} -d ${targetIp} --dport ${targetPort} -j ACCEPT`
-            );
+            if (!exists) {
+                // DNAT: redirect incoming traffic tới target
+                await execAsync(
+                    `iptables -t nat -I PREROUTING -p ${p} --dport ${proxyPort} -j DNAT --to-destination ${targetIp}:${targetPort}`
+                );
 
-            // Allow INPUT cho traffic này (nếu target là chính VPS này để test/chạy game cục bộ)
-            await execAsync(
-                `iptables -A INPUT -p ${p} -d ${targetIp} --dport ${targetPort} -j ACCEPT`
-            );
+                // Allow FORWARD cho traffic này
+                await execAsync(
+                    `iptables -I FORWARD -p ${p} -d ${targetIp} --dport ${targetPort} -j ACCEPT`
+                );
 
-            // MASQUERADE (SNAT): Đảm bảo traffic quay về Shield VPS
-            await execAsync(
-                `iptables -t nat -A POSTROUTING -p ${p} -d ${targetIp} --dport ${targetPort} -j MASQUERADE`
-            );
+                // MASQUERADE (SNAT): Đảm bảo traffic quay lời Shield VPS
+                await execAsync(
+                    `iptables -t nat -I POSTROUTING -p ${p} -d ${targetIp} --dport ${targetPort} -j MASQUERADE`
+                );
+            }
         }
 
         // Lưu rules
@@ -63,9 +64,6 @@ async function removeNatRule(proxyPort, targetIp, targetPort, protocol = 'tcp') 
             );
             await execAsync(
                 `iptables -D FORWARD -p ${p} -d ${targetIp} --dport ${targetPort} -j ACCEPT 2>/dev/null || true`
-            );
-            await execAsync(
-                `iptables -D INPUT -p ${p} -d ${targetIp} --dport ${targetPort} -j ACCEPT 2>/dev/null || true`
             );
             await execAsync(
                 `iptables -t nat -D POSTROUTING -p ${p} -d ${targetIp} --dport ${targetPort} -j MASQUERADE 2>/dev/null || true`
