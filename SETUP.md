@@ -124,24 +124,26 @@ pip install -r requirements.txt
 
 ## 📌 Phần 5: Cấu hình Nginx (Dành cho Web Dashboard & API)
 
-Xóa config mặc định và tạo config cho NRO Shield.
+Xóa config mặc định và tạo cấu hình mới:
 
 ```bash
 sudo rm -f /etc/nginx/sites-enabled/default
-sudo nano /etc/nginx/sites-available/nroshield
+sudo nano /etc/nginx/sites-available/default
 ```
 
 Dán cấu hình sau:
 ```nginx
 server {
-    listen 80;
-    server_name _; # Hoặc điền domain của bạn
+    listen 80 default_server;
+    listen [::]:80 default_server;
+
+    server_name _;
+    root /opt/nroshield/web;
+    index index.html;
 
     # Giao diện tĩnh (Frontend)
     location / {
-        root /opt/nroshield/web;
-        index index.html;
-        try_files $uri $uri/ =404;
+        try_files $uri $uri/ /index.html;
     }
 
     # API Backend Proxy
@@ -149,20 +151,38 @@ server {
         proxy_pass http://127.0.0.1:5000/api/;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
+        proxy_set_header Connection "upgrade";
         proxy_set_header Host $host;
         proxy_cache_bypass $http_upgrade;
         
         # Để hệ thống nhận diện IP người dùng
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # WebSocket Proxy
+    location /ws {
+        proxy_pass http://127.0.0.1:5000/ws;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # AI Engine Status
+    location /status {
+        proxy_pass http://127.0.0.1:8000/status;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
     }
 }
 ```
 
 Kích hoạt và khởi động lại Nginx:
 ```bash
-sudo ln -s /etc/nginx/sites-available/nroshield /etc/nginx/sites-enabled/
+sudo ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 sudo nginx -t
 sudo systemctl restart nginx
 ```
