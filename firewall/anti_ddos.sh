@@ -88,8 +88,8 @@ iptables -A NROSHIELD_UDP -p udp \
 
 iptables -A NROSHIELD_UDP -j RETURN
 
-iptables -I INPUT 2 -p udp -j NROSHIELD_UDP
-iptables -I FORWARD 2 -p udp -j NROSHIELD_UDP
+iptables -I INPUT 2 -p udp -m conntrack --ctstate NEW -j NROSHIELD_UDP
+iptables -I FORWARD 2 -p udp -m conntrack --ctstate NEW -j NROSHIELD_UDP
 
 log_ok "UDP Flood protection: rate limit ${UDP_RATE_LIMIT} per IP"
 
