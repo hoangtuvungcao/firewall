@@ -16,7 +16,6 @@ VPS_PUBLIC_IP=""
 SSH_PORT="22"
 GAME_PORTS="14445,20000,1875"
 API_PORT="5000"
-WEB_PORT="3000"
 AI_ENGINE_PORT="8000"
 PROXY_PORT_RANGE_START="30000"
 PROXY_PORT_RANGE_END="60000"
@@ -192,10 +191,10 @@ iptables -A INPUT -p tcp --dport "$SSH_PORT" -m conntrack --ctstate NEW -j ACCEP
 # ============================================================================
 log_info "Cho phép internal services..."
 
+# Web Servers (HTTP/HTTPS)
+iptables -A INPUT -p tcp -m multiport --dports 80,443 -j ACCEPT
 # API
 iptables -A INPUT -p tcp --dport "$API_PORT" -j ACCEPT
-# Web Panel
-iptables -A INPUT -p tcp --dport "$WEB_PORT" -j ACCEPT
 # AI Engine
 iptables -A INPUT -p tcp --dport "$AI_ENGINE_PORT" -s 127.0.0.1 -j ACCEPT
 
