@@ -33,10 +33,18 @@ async function addNatRule(proxyPort, targetIp, targetPort, protocol = 'tcp') {
                     `iptables -I FORWARD -p ${p} -d ${targetIp} --dport ${targetPort} -j ACCEPT`
                 );
 
-                // MASQUERADE (SNAT): Đảm bảo traffic quay lời Shield VPS
-                await execAsync(
-                    `iptables -t nat -I POSTROUTING -p ${p} -d ${targetIp} --dport ${targetPort} -j MASQUERADE`
-                );
+                // SNAT: Sử dụng SNAT thay vì MASQUERADE để tăng độ ổn định cho RakNet/UDP
+                // Cần biến môi trường VPS_PUBLIC_IP
+                const vpsIp = process.env.VPS_PUBLIC_IP || '';
+                if (vpsIp) {
+                    await execAsync(
+                        `iptables -t nat -I POSTROUTING -p ${p} -d ${targetIp} --dport ${targetPort} -j SNAT --to-source ${vpsIp}`
+                    );
+                } else {
+                    await execAsync(
+                        `iptables -t nat -I POSTROUTING -p ${p} -d ${targetIp} --dport ${targetPort} -j MASQUERADE`
+                    );
+                }
             }
         }
 
@@ -68,6 +76,12 @@ async function removeNatRule(proxyPort, targetIp, targetPort, protocol = 'tcp') 
             await execAsync(
                 `iptables -t nat -D POSTROUTING -p ${p} -d ${targetIp} --dport ${targetPort} -j MASQUERADE 2>/dev/null || true`
             );
+            const vpsIp = process.env.VPS_PUBLIC_IP || '';
+            if (vpsIp) {
+                await execAsync(
+                    `iptables -t nat -D POSTROUTING -p ${p} -d ${targetIp} --dport ${targetPort} -j SNAT --to-source ${vpsIp} 2>/dev/null || true`
+                );
+            }
         }
 
         await execAsync('iptables-save > /etc/iptables/rules.v4 2>/dev/null || true');
