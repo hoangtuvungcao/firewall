@@ -54,6 +54,18 @@ wss.on('connection', async (ws) => {
             } else if (data.type === 'GET_RECENT_ATTACKS') {
                 const logs = await AttackLogService.getRecent(50);
                 ws.send(JSON.stringify({ type: 'RECENT_ATTACKS', data: logs }));
+            } else if (data.type === 'MANAGE_IP') {
+                if (data.action === 'whitelist') {
+                    await FirewallService.whitelistIp(data.ip);
+                } else if (data.action === 'remove') {
+                    await FirewallService.removeIp(data.ip);
+                }
+            } else if (data.type === 'UPDATE_CONFIG') {
+                // Update realtime in-memory
+                ShieldAI.configs.maxPacketsPerInterval = data.data.pps;
+                ShieldAI.configs.maxQueriesPerSecond = data.data.query;
+                FirewallService.configs.blockDuration = data.data.block;
+                console.log('[CONFIG] Updated settings realtime.');
             }
         } catch (e) {
             console.error('[V2-WS] Message Error:', e.message);

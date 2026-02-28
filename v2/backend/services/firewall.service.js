@@ -1,47 +1,13 @@
 const { exec } = require('child_process');
 const util = require('util');
 const execAsync = util.promisify(exec);
+require('dotenv').config();
 
 /**
- * Firewall Service v2 - Direct Shell Interaction
+ * FIREWALL SERVICE v2 - APEX EDITION
+ * Quản lý iptables, ipset và cấu hình hệ thống chuyên sâu cho SA:MP
  */
 const FirewallService = {
-    /**
-     * Thêm IP vào whitelist
-     */
-    async whitelistIp(ip) {
-        try {
-            await execAsync(`ipset add nroshield-whitelist ${ip} 2>/dev/null || true`);
-            return { success: true };
-        } catch (err) {
-            return { success: false, error: err.message };
-        }
-    },
-
-    /**
-     * Chặn IP (Blacklist)
-     */
-    async blacklistIp(ip, timeout = 86400) {
-        try {
-            await execAsync(`ipset add nroshield-blacklist ${ip} timeout ${timeout} 2>/dev/null || true`);
-            return { success: true };
-        } catch (err) {
-            return { success: false, error: err.message };
-        }
-    },
-
-    /**
-     * Lấy danh sách IP bị chặn
-     */
-    async getBlacklist() {
-        try {
-            const { stdout } = await execAsync('ipset list nroshield-blacklist');
-            // Parse logic here if needed
-            return { success: true, data: stdout };
-        } catch (err) {
-            return { success: false, error: err.message };
-        }
-    },
 
     /**
      * Reload toàn bộ firewall v2

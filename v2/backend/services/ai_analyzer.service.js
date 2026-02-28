@@ -9,9 +9,10 @@ const AttackLogLogService = require('./attack_log.service');
 const ShieldAI = {
     // Cấu hình ngưỡng nhạy cảm
     configs: {
-        maxHandshakesPerSecond: 10,
-        maxQueriesPerSecond: 20,
-        analysisInterval: 5000 // 5 giây phân tích 1 lần
+        analysisInterval: 2000,
+        maxPacketsPerInterval: process.env.MAX_PPS_PER_IP || 100,
+        maxQueriesPerSecond: process.env.MAX_QUERIES_PER_IP || 5,
+        port: process.env.SAMP_PORT || 7777
     },
 
     state: {

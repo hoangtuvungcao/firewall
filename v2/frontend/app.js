@@ -169,6 +169,22 @@ function serverAction(action) {
     socket.send(JSON.stringify({ type: 'SERVER_ACTION', action }));
 }
 
+function manageIP(action) {
+    const ip = document.getElementById('unlock-ip').value;
+    if (!ip) return alert('Vui lòng nhập IP!');
+    socket.send(JSON.stringify({ type: 'MANAGE_IP', action, ip }));
+}
+
+function saveSettings() {
+    const data = {
+        pps: document.getElementById('config-pps').value,
+        query: document.getElementById('config-query').value,
+        block: document.getElementById('config-block').value
+    };
+    socket.send(JSON.stringify({ type: 'UPDATE_CONFIG', data }));
+    alert('Đang áp dụng cấu hình mới...');
+}
+
 function updateGeofenceUI(data) {
     const statusCircle = document.querySelector('.status-circle');
     const statusText = document.querySelector('#geofence-status strong');

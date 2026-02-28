@@ -434,6 +434,40 @@ tr:hover {
     color: var(--info);
 }
 
+/* Input Styling */
+.input-glass {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.75rem;
+    color: var(--text);
+    font-family: inherit;
+    transition: all 0.3s;
+}
+
+.input-glass:focus {
+    border-color: var(--primary);
+    outline: none;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.setting-item label {
+    font-size: 0.875rem;
+    color: var(--text-dim);
+}
+
+.setting-item input {
+    width: 80px;
+    text-align: center;
+}
+
 /* Buttons */
 .btn-primary {
     background: linear-gradient(135deg, var(--primary), var(--secondary));
