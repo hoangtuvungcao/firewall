@@ -531,7 +531,7 @@ function initWebSocket() {
   ws.onclose = () => {
     document.getElementById('api-status').textContent = 'Reconnecting...';
     document.getElementById('api-status').style.color = 'var(--warning)';
-    setTimeout(initWebSocket, 5000);
+    setTimeout(initWebSocket, 1000);
   };
 }
 
