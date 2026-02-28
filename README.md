@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://i.ibb.co/6nPpsX3/icon.png" width="120" alt="NRO Shield Logo">
+  <img src="icon.ico" width="120" alt="NRO Shield Logo">
   <h1>🛡️ NRO Shield</h1>
   <p><strong>Hệ thống Tường lửa Thông minh tích hợp AI & Telegram Bot</strong></p>
   
