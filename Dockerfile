@@ -17,7 +17,7 @@ RUN apk add --no-cache \
     procps
 
 COPY backend/package*.json ./backend/
-RUN cd backend && npm ci --production
+RUN cd backend && npm install --omit=dev
 
 COPY backend/ ./backend/
 COPY firewall/ ./firewall/

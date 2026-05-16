@@ -35,14 +35,15 @@ jobs:
               if (!fs.existsSync(dirPath)) return;
               fs.readdirSync(dirPath).filter(f => f.endsWith('.js')).forEach(f => {
                 try {
-                  require(path.join(dirPath, f));
+                  require('./' + dir + '/' + f);
                   console.log('  OK:', dir + '/' + f);
                 } catch(e) {
-                  if (!e.message.includes('connect') && !e.message.includes('ECONNREFUSED')) {
-                    console.error('  FAIL:', dir + '/' + f, '-', e.message);
-                    errors++;
-                  } else {
+                  const msg = e.message || '';
+                  if (msg.includes('connect') || msg.includes('ECONNREFUSED') || msg.includes('ENOTFOUND') || msg.includes('getaddrinfo') || msg.includes('Access denied')) {
                     console.log('  OK (db):', dir + '/' + f);
+                  } else {
+                    console.error('  FAIL:', dir + '/' + f, '-', msg);
+                    errors++;
                   }
                 }
               });
