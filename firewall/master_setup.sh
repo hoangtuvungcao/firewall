@@ -56,7 +56,7 @@ echo "" | tee -a "$LOG_FILE"
 # ============================================================================
 # STEP 1: Backup current config
 # ============================================================================
-log_step "1/8 — Backup cau hinh hien tai"
+log_step "1/9 — Backup cau hinh hien tai"
 
 if command -v iptables-save &>/dev/null; then
     iptables-save > "$BACKUP_DIR/iptables.rules.bak" 2>/dev/null || true
@@ -72,7 +72,7 @@ log_ok "Backup luu tai: $BACKUP_DIR"
 # ============================================================================
 # STEP 2: Install dependencies
 # ============================================================================
-log_step "2/8 — Cai dat dependencies"
+log_step "2/9 — Cai dat dependencies"
 
 if [[ -f "$SCRIPT_DIR/install.sh" ]]; then
     bash "$SCRIPT_DIR/install.sh" 2>&1 | tee -a "$LOG_FILE"
@@ -87,7 +87,7 @@ log_ok "Dependencies da cai dat"
 # ============================================================================
 # STEP 3: Kernel hardening
 # ============================================================================
-log_step "3/8 — Toi uu hoa kernel (sysctl hardening)"
+log_step "3/9 — Toi uu hoa kernel (sysctl hardening)"
 
 if [[ -f "$SCRIPT_DIR/sysctl_hardening.sh" ]]; then
     bash "$SCRIPT_DIR/sysctl_hardening.sh" 2>&1 | tee -a "$LOG_FILE"
@@ -99,7 +99,17 @@ log_ok "Kernel da toi uu"
 # ============================================================================
 # STEP 4: Base firewall rules
 # ============================================================================
-log_step "4/8 — Thiet lap iptables co ban"
+log_step "4/9 — Early Drop Engine (raw/mangle pre-conntrack)"
+
+if [[ -f "$SCRIPT_DIR/early_drop.sh" ]]; then
+    bash "$SCRIPT_DIR/early_drop.sh" 2>&1 | tee -a "$LOG_FILE"
+fi
+log_ok "Early Drop Engine da thiet lap — botnet bi drop truoc conntrack"
+
+# ============================================================================
+# STEP 5: Base firewall rules
+# ============================================================================
+log_step "5/9 — Thiet lap iptables co ban"
 
 if [[ -f "$SCRIPT_DIR/iptables_base.sh" ]]; then
     bash "$SCRIPT_DIR/iptables_base.sh" 2>&1 | tee -a "$LOG_FILE"
@@ -109,7 +119,7 @@ log_ok "Base firewall da thiet lap"
 # ============================================================================
 # STEP 5: Anti-DDoS v2 (strongest rules)
 # ============================================================================
-log_step "5/8 — Anti-DDoS v2 (chong tan cong manh nhat)"
+log_step "6/9 — Anti-DDoS v2 (chong tan cong manh nhat)"
 
 if [[ -f "$SCRIPT_DIR/anti_ddos_v2.sh" ]]; then
     bash "$SCRIPT_DIR/anti_ddos_v2.sh" 2>&1 | tee -a "$LOG_FILE"
@@ -125,7 +135,7 @@ log_ok "Anti-DDoS v2 da thiet lap"
 # ============================================================================
 # STEP 6: Game-specific rules
 # ============================================================================
-log_step "6/8 — Thiet lap rules cho game: ${GAME_TYPE}"
+log_step "7/9 — Thiet lap rules cho game: ${GAME_TYPE}"
 
 if [[ -f "$SCRIPT_DIR/multi_game_support.sh" ]]; then
     bash "$SCRIPT_DIR/multi_game_support.sh" "$GAME_TYPE" 2>&1 | tee -a "$LOG_FILE"
@@ -135,7 +145,7 @@ log_ok "Game rules da thiet lap cho: ${GAME_TYPE}"
 # ============================================================================
 # STEP 7: Setup systemd services cho tu dong khoi dong
 # ============================================================================
-log_step "7/8 — Thiet lap systemd services (on dinh lau dai)"
+log_step "8/9 — Thiet lap systemd services (on dinh lau dai)"
 
 # Tao systemd service cho iptables restore khi reboot
 cat > /etc/systemd/system/nroshield-firewall.service << 'SVCEOF'
@@ -188,7 +198,7 @@ log_ok "Systemd services da thiet lap — firewall se tu khoi dong khi reboot"
 # ============================================================================
 # STEP 8: Verify & Summary
 # ============================================================================
-log_step "8/8 — Kiem tra va tong ket"
+log_step "9/9 — Kiem tra va tong ket"
 
 echo ""
 echo -e "${PURPLE}${BOLD}  ╔══════════════════════════════════════════════════╗${NC}"
@@ -223,6 +233,7 @@ echo "  [x] Anti-ACK/RST/FIN Flood"
 echo "  [x] Anti-Bypass (TCP/UDP validation)"
 echo "  [x] Anti-Carpet Bombing"
 echo "  [x] Anti-Reflection (NTP/DNS/Memcached)"
+echo "  [x] Early Drop Engine (raw table pre-conntrack)"
 echo "  [x] Anti-Botnet (IP blocklists)"
 echo "  [x] Adaptive Rate Limiting"
 echo "  [x] Dynamic Blacklisting"
@@ -231,6 +242,7 @@ echo "  [x] Connection exhaustion defense"
 echo "  [x] Kernel hardening (sysctl)"
 echo "  [x] Auto-restore on reboot"
 echo "  [x] Daily blocklist updates"
+echo "  [x] Auto-blacklist (10s interval)"
 echo ""
 echo -e "${GREEN}  Setup on dinh lau dai — firewall tu dong khoi dong khi reboot.${NC}"
 echo -e "${CYAN}  Su dung: systemctl status nroshield-firewall${NC}"
