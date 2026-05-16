@@ -25,13 +25,19 @@ router.get('/', async (req, res) => {
 // POST /api/servers
 router.post('/', async (req, res) => {
     try {
-        const { name, target_ip } = req.body;
+        const { name, target_ip, game_type } = req.body;
 
         if (!target_ip) return res.status(400).json({ error: 'Cần target_ip' });
 
         // Validate IP format
         const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
         if (!ipRegex.test(target_ip)) return res.status(400).json({ error: 'IP không hợp lệ' });
+
+        // Validate game_type nếu có
+        if (game_type) {
+            const [games] = await db.query('SELECT code FROM game_types WHERE code = ? AND is_active = TRUE', [game_type]);
+            if (!games.length) return res.status(400).json({ error: 'Game type không hợp lệ' });
+        }
 
         // Lấy key của user
         const [keys] = await db.query(
@@ -41,22 +47,23 @@ router.post('/', async (req, res) => {
 
         const key = keys[0];
 
-        // Kiểm tra quota server
+        // Kiểm tra quota server (ưu tiên plan nếu có)
+        const maxServers = req.user.plan_max_servers || key.max_servers;
         const [count] = await db.query(
             'SELECT COUNT(*) as c FROM servers WHERE key_id = ?', [key.id]
         );
-        if (count[0].c >= key.max_servers) {
-            return res.status(400).json({ error: `Đã đạt giới hạn ${key.max_servers} server` });
+        if (count[0].c >= maxServers) {
+            return res.status(400).json({ error: `Đã đạt giới hạn ${maxServers} server` });
         }
 
         const [result] = await db.query(
-            'INSERT INTO servers (user_id, key_id, name, target_ip) VALUES (?, ?, ?, ?)',
-            [req.user.id, key.id, name || 'My Server', target_ip]
+            'INSERT INTO servers (user_id, key_id, name, target_ip, game_type) VALUES (?, ?, ?, ?, ?)',
+            [req.user.id, key.id, name || 'My Server', target_ip, game_type || 'nro']
         );
 
         res.status(201).json({
             message: 'Server đã thêm',
-            server: { id: result.insertId, name: name || 'My Server', target_ip }
+            server: { id: result.insertId, name: name || 'My Server', target_ip, game_type: game_type || 'nro' }
         });
     } catch (err) {
         res.status(500).json({ error: 'Lỗi server' });
