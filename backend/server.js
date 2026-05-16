@@ -22,10 +22,18 @@ const gameRoutes = require('./routes/game.routes');
 const planRoutes = require('./routes/plan.routes');
 const firewallRoutes = require('./routes/firewall.routes');
 const notificationRoutes = require('./routes/notification.routes');
+const twofaRoutes = require('./routes/twofa.routes');
+const healthRoutes = require('./routes/health.routes');
+const analyticsRoutes = require('./routes/analytics.routes');
+const webhookRoutes = require('./routes/webhook.routes');
+const backupRoutes = require('./routes/backup.routes');
+const alertRulesRoutes = require('./routes/alert.rules.routes');
 
 // Services
 const { checkExpiredKeys } = require('./services/key.service');
 const { syncFirewallRules } = require('./services/firewall_v2.service');
+const { checkAllServers } = require('./services/health.service');
+const { triggerWebhooks } = require('./services/webhook.service');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -102,13 +110,19 @@ app.use('/api/games', gameRoutes);
 app.use('/api/plans', planRoutes);
 app.use('/api/firewall', firewallRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/2fa', twofaRoutes);
+app.use('/api/health', healthRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/webhooks', webhookRoutes);
+app.use('/api/backups', backupRoutes);
+app.use('/api/alert-rules', alertRulesRoutes);
 
-// Health check
-app.get('/api/health', (req, res) => {
+// System health check
+app.get('/api/system/health', (req, res) => {
     res.json({
         status: 'ok',
         name: 'NRO Shield API',
-        version: '2.0.0',
+        version: '2.2.0',
         uptime: process.uptime()
     });
 });
@@ -140,6 +154,27 @@ cron.schedule('*/5 * * * *', async () => {
         await syncFirewallRules();
     } catch (err) {
         console.error('[CRON] Sync firewall error:', err.message);
+    }
+});
+
+// Health check mỗi 3 phút
+cron.schedule('*/3 * * * *', async () => {
+    try {
+        const results = await checkAllServers();
+        const offlineServers = results.filter(r => r.status === 'offline');
+        if (offlineServers.length > 0) {
+            app.get('broadcast')({
+                type: 'HEALTH_UPDATE',
+                data: results,
+                offline_count: offlineServers.length
+            });
+            triggerWebhooks('server_offline', {
+                message: `${offlineServers.length} server(s) offline`,
+                servers: offlineServers
+            });
+        }
+    } catch (err) {
+        console.error('[CRON] Health check error:', err.message);
     }
 });
 

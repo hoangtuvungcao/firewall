@@ -293,4 +293,151 @@ class ApiService {
         body: jsonEncode({'title': title, 'message': message, 'type': type}));
     _process(res);
   }
+
+  // === 2FA ===
+  Future<Map<String, dynamic>> get2faStatus() async {
+    final res = await http.get(Uri.parse('$baseUrl/api/2fa/status'),
+        headers: _headers);
+    return _process(res) as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> setup2fa() async {
+    final res = await http.post(Uri.parse('$baseUrl/api/2fa/setup'),
+        headers: _headers);
+    return _process(res) as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> verify2fa(String token) async {
+    final res = await http.post(Uri.parse('$baseUrl/api/2fa/verify'),
+        headers: _headers, body: jsonEncode({'token': token}));
+    return _process(res) as Map<String, dynamic>;
+  }
+
+  Future<void> disable2fa(String token) async {
+    final res = await http.post(Uri.parse('$baseUrl/api/2fa/disable'),
+        headers: _headers, body: jsonEncode({'token': token}));
+    _process(res);
+  }
+
+  // === SERVER HEALTH ===
+  Future<List> getHealthSummary() async {
+    final res = await http.get(Uri.parse('$baseUrl/api/health/summary'),
+        headers: _headers);
+    return _process(res) as List;
+  }
+
+  Future<List> getHealthHistory(int serverId, {int hours = 24}) async {
+    final res = await http.get(
+        Uri.parse('$baseUrl/api/health/$serverId/history?hours=$hours'),
+        headers: _headers);
+    return _process(res) as List;
+  }
+
+  Future<Map<String, dynamic>> triggerHealthCheck() async {
+    final res = await http.post(Uri.parse('$baseUrl/api/health/check'),
+        headers: _headers);
+    return _process(res) as Map<String, dynamic>;
+  }
+
+  // === ATTACK ANALYTICS ===
+  Future<Map<String, dynamic>> getAnalyticsOverview({int days = 7}) async {
+    final res = await http.get(
+        Uri.parse('$baseUrl/api/analytics/overview?days=$days'),
+        headers: _headers);
+    return _process(res) as Map<String, dynamic>;
+  }
+
+  Future<List> getAnalyticsTimeline({int hours = 24}) async {
+    final res = await http.get(
+        Uri.parse('$baseUrl/api/analytics/timeline?hours=$hours'),
+        headers: _headers);
+    return _process(res) as List;
+  }
+
+  Future<List> getAnalyticsCountries() async {
+    final res = await http.get(Uri.parse('$baseUrl/api/analytics/countries'),
+        headers: _headers);
+    return _process(res) as List;
+  }
+
+  // === WEBHOOKS ===
+  Future<List> getWebhooks() async {
+    final res = await http.get(Uri.parse('$baseUrl/api/webhooks'),
+        headers: _headers);
+    return _process(res) as List;
+  }
+
+  Future<Map<String, dynamic>> createWebhook(
+      String name, String url, String type, List<String> events) async {
+    final res = await http.post(Uri.parse('$baseUrl/api/webhooks'),
+        headers: _headers,
+        body: jsonEncode(
+            {'name': name, 'url': url, 'type': type, 'events': events}));
+    return _process(res) as Map<String, dynamic>;
+  }
+
+  Future<void> deleteWebhook(int id) async {
+    final res = await http.delete(Uri.parse('$baseUrl/api/webhooks/$id'),
+        headers: _headers);
+    _process(res);
+  }
+
+  Future<void> testWebhook(int id) async {
+    final res = await http.post(Uri.parse('$baseUrl/api/webhooks/$id/test'),
+        headers: _headers);
+    _process(res);
+  }
+
+  // === BACKUPS ===
+  Future<List> getBackups() async {
+    final res = await http.get(Uri.parse('$baseUrl/api/backups'),
+        headers: _headers);
+    return _process(res) as List;
+  }
+
+  Future<Map<String, dynamic>> createBackup({String? name}) async {
+    final res = await http.post(Uri.parse('$baseUrl/api/backups'),
+        headers: _headers,
+        body: jsonEncode({'name': name}));
+    return _process(res) as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> restoreBackup(int id) async {
+    final res = await http.post(Uri.parse('$baseUrl/api/backups/$id/restore'),
+        headers: _headers);
+    return _process(res) as Map<String, dynamic>;
+  }
+
+  Future<void> deleteBackup(int id) async {
+    final res = await http.delete(Uri.parse('$baseUrl/api/backups/$id'),
+        headers: _headers);
+    _process(res);
+  }
+
+  // === ALERT RULES ===
+  Future<List> getAlertRules() async {
+    final res = await http.get(Uri.parse('$baseUrl/api/alert-rules'),
+        headers: _headers);
+    return _process(res) as List;
+  }
+
+  Future<Map<String, dynamic>> createAlertRule(
+      Map<String, dynamic> rule) async {
+    final res = await http.post(Uri.parse('$baseUrl/api/alert-rules'),
+        headers: _headers, body: jsonEncode(rule));
+    return _process(res) as Map<String, dynamic>;
+  }
+
+  Future<void> toggleAlertRule(int id) async {
+    final res = await http.put(
+        Uri.parse('$baseUrl/api/alert-rules/$id/toggle'),
+        headers: _headers);
+    _process(res);
+  }
+
+  Future<void> deleteAlertRule(int id) async {
+    final res = await http.delete(Uri.parse('$baseUrl/api/alert-rules/$id'),
+        headers: _headers);
+    _process(res);
+  }
 }
