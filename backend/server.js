@@ -145,15 +145,62 @@ cron.schedule('*/5 * * * *', async () => {
 
 // Broadcast Real-time /var/log/nroshield/traffic/current_metrics.json mỗi 5s
 const fs = require('fs');
+const path = require('path');
+let lastMetricsHash = '';
+let lastAttackSize = 0;
+
 setInterval(() => {
     try {
-        if (fs.existsSync('/var/log/nroshield/traffic/current_metrics.json')) {
-            const data = fs.readFileSync('/var/log/nroshield/traffic/current_metrics.json', 'utf8');
-            const metrics = JSON.parse(data);
-            app.get('broadcast')({ type: 'TRAFFIC_METRICS', data: metrics });
+        const metricsPath = '/var/log/nroshield/traffic/current_metrics.json';
+        if (fs.existsSync(metricsPath)) {
+            const data = fs.readFileSync(metricsPath, 'utf8');
+            if (data !== lastMetricsHash) {
+                lastMetricsHash = data;
+                const metrics = JSON.parse(data);
+                app.get('broadcast')({ type: 'TRAFFIC_METRICS', data: metrics });
+
+                if (metrics.alert_triggered) {
+                    app.get('broadcast')({
+                        type: 'attack_alert',
+                        severity: metrics.total_connections > 1000 ? 'critical' : 'high',
+                        connections: metrics.total_connections,
+                        conntrack: metrics.conntrack_count,
+                        timestamp: metrics.timestamp
+                    });
+                }
+            }
         }
     } catch (err) {
-        // Ignore read errors (e.g., file being written)
+        // Ignore read errors
+    }
+}, 3000);
+
+// Watch attack logs for real-time alerts
+setInterval(() => {
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        const attackLog = `/var/log/nroshield/attacks/${today}.log`;
+        if (fs.existsSync(attackLog)) {
+            const stat = fs.statSync(attackLog);
+            if (stat.size > lastAttackSize) {
+                const data = fs.readFileSync(attackLog, 'utf8');
+                const lines = data.trim().split('\n');
+                const newLines = lines.slice(-5);
+                lastAttackSize = stat.size;
+                newLines.forEach(line => {
+                    if (line.includes('ALERT') || line.includes('RATE_EXCEEDED')) {
+                        app.get('broadcast')({
+                            type: 'attack_alert',
+                            message: line,
+                            severity: line.includes('RATE_EXCEEDED') ? 'high' : 'medium',
+                            timestamp: new Date().toISOString()
+                        });
+                    }
+                });
+            }
+        }
+    } catch (err) {
+        // Ignore
     }
 }, 5000);
 
