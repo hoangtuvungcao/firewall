@@ -18,10 +18,14 @@ const serverRoutes = require('./routes/server.routes');
 const statsRoutes = require('./routes/stats.routes');
 const adminRoutes = require('./routes/admin.routes');
 const aiRoutes = require('./routes/ai.routes');
+const gameRoutes = require('./routes/game.routes');
+const planRoutes = require('./routes/plan.routes');
+const firewallRoutes = require('./routes/firewall.routes');
+const notificationRoutes = require('./routes/notification.routes');
 
 // Services
 const { checkExpiredKeys } = require('./services/key.service');
-const { syncFirewallRules } = require('./services/firewall.service');
+const { syncFirewallRules } = require('./services/firewall_v2.service');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -31,10 +35,34 @@ const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws' });
 app.set('wss', wss);
 
-wss.on('connection', (ws) => {
+wss.on('connection', (ws, req) => {
     console.log('[WS] Client connected');
+    ws.isAlive = true;
+
+    ws.on('pong', () => { ws.isAlive = true; });
+
+    ws.on('message', (msg) => {
+        try {
+            const data = JSON.parse(msg);
+            if (data.type === 'auth' && data.token) {
+                ws.authenticated = true;
+                ws.send(JSON.stringify({ type: 'auth_ok' }));
+            } else if (data.type === 'ping') {
+                ws.send(JSON.stringify({ type: 'pong' }));
+            }
+        } catch (_) {}
+    });
+
     ws.on('close', () => console.log('[WS] Client disconnected'));
 });
+
+const wsHeartbeat = setInterval(() => {
+    wss.clients.forEach((ws) => {
+        if (!ws.isAlive) return ws.terminate();
+        ws.isAlive = false;
+        ws.ping();
+    });
+}, 30000);
 
 // Broadcast function
 app.set('broadcast', (data) => {
@@ -70,13 +98,17 @@ app.use('/api/servers', serverRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/games', gameRoutes);
+app.use('/api/plans', planRoutes);
+app.use('/api/firewall', firewallRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'ok',
         name: 'NRO Shield API',
-        version: '1.0.0',
+        version: '2.0.0',
         uptime: process.uptime()
     });
 });

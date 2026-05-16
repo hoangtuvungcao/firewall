@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'services/api_service.dart';
 import 'services/auth_service.dart';
+import 'services/websocket_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
 
@@ -11,6 +12,7 @@ void main() {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService()),
         Provider(create: (_) => ApiService()),
+        ChangeNotifierProvider(create: (_) => WebSocketService()),
       ],
       child: const NROShieldApp(),
     ),
@@ -63,18 +65,14 @@ class NROShieldApp extends StatelessWidget {
             backgroundColor: const Color(0xFF3B82F6),
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            textStyle:
-                const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
           ),
         ),
       ),
       home: Consumer<AuthService>(
         builder: (context, auth, _) {
-          return auth.isLoggedIn
-              ? const DashboardScreen()
-              : const LoginScreen();
+          return auth.isLoggedIn ? const DashboardScreen() : const LoginScreen();
         },
       ),
     );
