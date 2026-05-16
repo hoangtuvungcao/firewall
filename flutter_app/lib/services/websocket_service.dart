@@ -10,19 +10,31 @@ class WebSocketService extends ChangeNotifier {
   Timer? _pingTimer;
   final List<Map<String, dynamic>> _realtimeAttacks = [];
   Map<String, dynamic> _liveMetrics = {};
+  String? _lastUrl;
+  String? _lastToken;
+  int _reconnectAttempts = 0;
+  static const int _maxReconnectAttempts = 10;
 
   bool get connected => _connected;
-  List<Map<String, dynamic>> get realtimeAttacks =>
-      List.unmodifiable(_realtimeAttacks);
+  List<Map<String, dynamic>> get realtimeAttacks => List.unmodifiable(_realtimeAttacks);
   Map<String, dynamic> get liveMetrics => Map.unmodifiable(_liveMetrics);
+  int get attackCount => _realtimeAttacks.length;
 
   void connect(String baseUrl, String token) {
-    final wsUrl = baseUrl
-        .replaceFirst('https://', 'wss://')
-        .replaceFirst('http://', 'ws://');
+    _lastUrl = baseUrl;
+    _lastToken = token;
+    _reconnectAttempts = 0;
+    _doConnect();
+  }
+
+  void _doConnect() {
+    if (_lastUrl == null || _lastToken == null) return;
+    final wsUrl = '${_lastUrl!.replaceFirst('https://', 'wss://').replaceFirst('http://', 'ws://')}/ws';
     try {
+      _channel?.sink.close();
       _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
       _connected = true;
+      _reconnectAttempts = 0;
       notifyListeners();
 
       _channel!.stream.listen(
@@ -31,13 +43,14 @@ class WebSocketService extends ChangeNotifier {
         onDone: () => _onDisconnect(),
       );
 
-      _channel!.sink.add(jsonEncode({'type': 'auth', 'token': token}));
+      _channel!.sink.add(jsonEncode({'type': 'auth', 'token': _lastToken}));
 
       _pingTimer?.cancel();
-      _pingTimer = Timer.periodic(
-          const Duration(seconds: 30),
-          (_) => _channel?.sink
-              .add(jsonEncode({'type': 'ping', 't': DateTime.now().millisecondsSinceEpoch})));
+      _pingTimer = Timer.periodic(const Duration(seconds: 25), (_) {
+        if (_connected) {
+          _channel?.sink.add(jsonEncode({'type': 'ping', 't': DateTime.now().millisecondsSinceEpoch}));
+        }
+      });
     } catch (_) {
       _onDisconnect();
     }
@@ -47,17 +60,22 @@ class WebSocketService extends ChangeNotifier {
     try {
       final data = jsonDecode(raw as String) as Map<String, dynamic>;
       final type = data['type'] as String?;
-
       switch (type) {
+        case 'auth_ok':
+          _connected = true;
+          break;
         case 'attack_alert':
           _realtimeAttacks.insert(0, data);
-          if (_realtimeAttacks.length > 100) _realtimeAttacks.removeLast();
+          if (_realtimeAttacks.length > 200) _realtimeAttacks.removeLast();
           break;
+        case 'TRAFFIC_METRICS':
         case 'metrics':
-          _liveMetrics = data;
+          _liveMetrics = data['data'] is Map ? data['data'] as Map<String, dynamic> : data;
           break;
         case 'rule_update':
         case 'sync_complete':
+          break;
+        case 'pong':
           break;
       }
       notifyListeners();
@@ -67,8 +85,13 @@ class WebSocketService extends ChangeNotifier {
   void _onDisconnect() {
     _connected = false;
     notifyListeners();
+    _pingTimer?.cancel();
     _reconnectTimer?.cancel();
-    _reconnectTimer = Timer(const Duration(seconds: 5), () {});
+    if (_reconnectAttempts < _maxReconnectAttempts) {
+      _reconnectAttempts++;
+      final delay = Duration(seconds: 2 * _reconnectAttempts);
+      _reconnectTimer = Timer(delay, () => _doConnect());
+    }
   }
 
   void disconnect() {
@@ -76,6 +99,8 @@ class WebSocketService extends ChangeNotifier {
     _pingTimer?.cancel();
     _channel?.sink.close();
     _connected = false;
+    _lastUrl = null;
+    _lastToken = null;
     notifyListeners();
   }
 
