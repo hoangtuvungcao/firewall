@@ -22,7 +22,7 @@ router.post('/', authenticate, async (req, res) => {
         const backupName = name || `Backup ${new Date().toISOString().split('T')[0]}`;
 
         const [rules] = await db.query(
-            'SELECT * FROM firewall_rules WHERE user_id = ?', [req.user.id]
+            'SELECT * FROM firewall_rules WHERE created_by = ?', [req.user.id]
         );
         const [geoBlocks] = await db.query(
             `SELECT gb.* FROM geo_blocks gb
@@ -57,7 +57,7 @@ router.post('/:id/restore', authenticate, async (req, res) => {
         for (const rule of (backupData.rules || [])) {
             try {
                 await db.query(
-                    `INSERT INTO firewall_rules (user_id, server_id, name, rule_type, source_ip, dest_port, protocol, action, rate_limit, rate_burst, priority, is_active)
+                    `INSERT INTO firewall_rules (created_by, server_id, name, rule_type, source_ip, dest_port, protocol, action, rate_limit, rate_burst, priority, is_active)
                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
                     [req.user.id, rule.server_id, rule.name, rule.rule_type, rule.source_ip, rule.dest_port,
                      rule.protocol, rule.action, rule.rate_limit, rule.rate_burst, rule.priority || 100]
