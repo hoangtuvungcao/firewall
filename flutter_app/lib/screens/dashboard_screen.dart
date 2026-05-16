@@ -50,7 +50,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       setState(() {
         _summary = results[0] as Map<String, dynamic>;
         final countData = results[1] as Map<String, dynamic>;
-        _unreadNotifications = countData['count'] ?? 0;
+        _unreadNotifications = countData['unread'] ?? 0;
         _loading = false;
       });
     } catch (e) {

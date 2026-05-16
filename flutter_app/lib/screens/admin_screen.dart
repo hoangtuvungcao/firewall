@@ -151,7 +151,7 @@ class _AdminScreenState extends State<AdminScreen>
                     PopupMenuItem(child: Text(isActive ? 'Khoa' : 'Mo khoa'), onTap: () => _toggleUser(u['id'])),
                     if (role != 'admin') PopupMenuItem(child: const Text('Set Admin'), onTap: () => _changeRole(u['id'], 'admin')),
                     if (role != 'reseller') PopupMenuItem(child: const Text('Set Reseller'), onTap: () => _changeRole(u['id'], 'reseller')),
-                    if (role != 'user') PopupMenuItem(child: const Text('Set User'), onTap: () => _changeRole(u['id'], 'user')),
+                    if (role != 'basic') PopupMenuItem(child: const Text('Set User'), onTap: () => _changeRole(u['id'], 'basic')),
                     PopupMenuItem(
                       child: const Text('Xoa', style: TextStyle(color: Color(0xFFEF4444))),
                       onTap: () => _deleteUser(u['id']),

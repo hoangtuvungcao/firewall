@@ -54,7 +54,7 @@ class _FirewallScreenState extends State<FirewallScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Loi: \$e'), backgroundColor: const Color(0xFFEF4444)),
+          SnackBar(content: Text('Loi: $e'), backgroundColor: const Color(0xFFEF4444)),
         );
       }
     }
@@ -135,7 +135,7 @@ class _FirewallScreenState extends State<FirewallScreen> {
             children: [
               const Text('Firewall Rules', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               const Spacer(),
-              Text('\${_rules.length} rules', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
+              Text('${_rules.length} rules', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
             ],
           ),
           const SizedBox(height: 12),
@@ -182,7 +182,7 @@ class _FirewallScreenState extends State<FirewallScreen> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(rule['name'] ?? 'Rule #\${rule['id']}',
+                  child: Text(rule["name"] ?? "Rule #${rule["id"]}",
                       style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                 ),
                 Container(
@@ -216,11 +216,11 @@ class _FirewallScreenState extends State<FirewallScreen> {
                   _tagChip(rule['protocol'].toString().toUpperCase()),
                 if (rule['source_ip'] != null) ...[
                   const SizedBox(width: 6),
-                  _tagChip('Src: \${rule['source_ip']}'),
+                  _tagChip("Src: ${rule["source_ip"]}"),
                 ],
                 if (rule['dest_port'] != null) ...[
                   const SizedBox(width: 6),
-                  _tagChip('Port: \${rule['dest_port']}'),
+                  _tagChip("Port: ${rule["dest_port"]}"),
                 ],
               ],
             ),

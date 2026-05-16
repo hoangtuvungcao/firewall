@@ -44,8 +44,23 @@ router.get('/users', async (req, res) => {
 
         const [users] = await db.query(query, params);
 
-        // Total count
-        const [[{ total }]] = await db.query('SELECT COUNT(*) as total FROM users');
+        // Total count with same filters
+        let countQuery = 'SELECT COUNT(*) as total FROM users u WHERE 1=1';
+        const countParams = [];
+        if (search) {
+            countQuery += ' AND (u.username LIKE ? OR u.email LIKE ?)';
+            countParams.push(`%${search}%`, `%${search}%`);
+        }
+        if (role) {
+            countQuery += ' AND u.role = ?';
+            countParams.push(role);
+        }
+        if (status === 'active') {
+            countQuery += ' AND u.is_active = TRUE';
+        } else if (status === 'inactive') {
+            countQuery += ' AND u.is_active = FALSE';
+        }
+        const [[{ total }]] = await db.query(countQuery, countParams);
 
         res.json({ users, total, page: parseInt(page), limit: parseInt(limit) });
     } catch (err) {

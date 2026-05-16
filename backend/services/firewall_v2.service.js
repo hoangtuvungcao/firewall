@@ -87,38 +87,76 @@ async function syncFirewallRules() {
 }
 
 /**
+ * Validate input to prevent command injection
+ */
+function sanitizeInput(value, type) {
+    if (value == null) return null;
+    const str = String(value);
+    const shellMeta = /[;&|`$(){}[\]<>!\n\r\\]/;
+    if (shellMeta.test(str)) return null;
+
+    switch (type) {
+        case 'ip':
+            if (!/^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}(\/[0-9]{1,2})?$/.test(str)) return null;
+            return str;
+        case 'port':
+            if (!/^[0-9]{1,5}(:[0-9]{1,5})?$/.test(str)) return null;
+            return str;
+        case 'protocol':
+            if (!['tcp', 'udp', 'icmp', 'all'].includes(str.toLowerCase())) return null;
+            return str.toLowerCase();
+        case 'rate':
+            if (!/^[0-9]+\/(sec|min|hour)$/.test(str)) return null;
+            return str;
+        case 'number':
+            if (!/^[0-9]+$/.test(str)) return null;
+            return str;
+        default:
+            return str;
+    }
+}
+
+/**
  * Áp dụng một firewall rule cụ thể
  */
 async function applyFirewallRule(rule) {
-    const proto = rule.protocol === 'all' ? '' : `-p ${rule.protocol}`;
+    const safeProto = sanitizeInput(rule.protocol, 'protocol') || 'all';
+    const proto = safeProto === 'all' ? '' : `-p ${safeProto}`;
     let cmd = '';
 
     switch (rule.rule_type) {
-        case 'rate_limit':
-            if (rule.rate_limit) {
-                const port = rule.dest_port ? `--dport ${rule.dest_port}` : '';
+        case 'rate_limit': {
+            const safeRate = sanitizeInput(rule.rate_limit, 'rate');
+            if (safeRate) {
+                const safePort = sanitizeInput(rule.dest_port, 'port');
+                const safeBurst = sanitizeInput(rule.rate_burst, 'number') || '50';
+                const port = safePort ? `--dport ${safePort}` : '';
                 cmd = `iptables -A FORWARD ${proto} ${port} -m hashlimit ` +
-                    `--hashlimit-above ${rule.rate_limit} ` +
-                    `--hashlimit-burst ${rule.rate_burst || 50} ` +
+                    `--hashlimit-above ${safeRate} ` +
+                    `--hashlimit-burst ${safeBurst} ` +
                     `--hashlimit-mode srcip ` +
                     `--hashlimit-name rule_${rule.id} -j DROP 2>/dev/null || true`;
             }
             break;
+        }
 
-        case 'block':
-            if (rule.source_ip) {
-                cmd = `ipset add nroshield-blacklist ${rule.source_ip} 2>/dev/null || true`;
+        case 'block': {
+            const safeIp = sanitizeInput(rule.source_ip, 'ip');
+            if (safeIp) {
+                cmd = `ipset add nroshield-blacklist ${safeIp} 2>/dev/null || true`;
             }
             break;
+        }
 
-        case 'allow':
-            if (rule.source_ip) {
-                cmd = `ipset add nroshield-whitelist ${rule.source_ip} 2>/dev/null || true`;
+        case 'allow': {
+            const safeIp = sanitizeInput(rule.source_ip, 'ip');
+            if (safeIp) {
+                cmd = `ipset add nroshield-whitelist ${safeIp} 2>/dev/null || true`;
             }
             break;
+        }
 
         case 'geo_block':
-            // GeoIP blocking handled by ipset country sets
             break;
 
         default:
@@ -147,6 +185,22 @@ async function applyGameRules(gameType, proxyPort) {
  * Thêm custom firewall rule
  */
 async function addCustomRule(ruleData) {
+    if (ruleData.source_ip && !sanitizeInput(ruleData.source_ip, 'ip')) {
+        throw new Error('Invalid source_ip format');
+    }
+    if (ruleData.dest_port && !sanitizeInput(String(ruleData.dest_port), 'port')) {
+        throw new Error('Invalid dest_port format');
+    }
+    if (ruleData.protocol && !sanitizeInput(ruleData.protocol, 'protocol')) {
+        throw new Error('Invalid protocol (must be tcp/udp/icmp/all)');
+    }
+    if (ruleData.rate_limit && !sanitizeInput(ruleData.rate_limit, 'rate')) {
+        throw new Error('Invalid rate_limit format (e.g. 100/sec)');
+    }
+    if (ruleData.rate_burst && !sanitizeInput(String(ruleData.rate_burst), 'number')) {
+        throw new Error('Invalid rate_burst (must be a number)');
+    }
+
     const [result] = await db.query(
         `INSERT INTO firewall_rules (name, rule_type, priority, protocol, source_ip, source_port,
             dest_port, action, rate_limit, rate_burst, conditions, is_global, server_id,
@@ -182,10 +236,13 @@ async function removeCustomRule(ruleId) {
 
     // Remove from iptables if it was applied
     if (rules[0].applied && rules[0].source_ip) {
-        if (rules[0].rule_type === 'block') {
-            await execAsync(`ipset del nroshield-blacklist ${rules[0].source_ip} 2>/dev/null || true`);
-        } else if (rules[0].rule_type === 'allow') {
-            await execAsync(`ipset del nroshield-whitelist ${rules[0].source_ip} 2>/dev/null || true`);
+        const safeIp = sanitizeInput(rules[0].source_ip, 'ip');
+        if (safeIp) {
+            if (rules[0].rule_type === 'block') {
+                await execAsync(`ipset del nroshield-blacklist ${safeIp} 2>/dev/null || true`);
+            } else if (rules[0].rule_type === 'allow') {
+                await execAsync(`ipset del nroshield-whitelist ${safeIp} 2>/dev/null || true`);
+            }
         }
     }
 

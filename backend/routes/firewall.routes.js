@@ -224,6 +224,16 @@ router.post('/geo-blocks', requireFeature('enable_geoblock'), async (req, res) =
 // DELETE /api/firewall/geo-blocks/:id — Xóa geo block
 router.delete('/geo-blocks/:id', requireFeature('enable_geoblock'), async (req, res) => {
     try {
+        const [blocks] = await db.query('SELECT gb.*, s.user_id as server_owner FROM geo_blocks gb LEFT JOIN servers s ON gb.server_id = s.id WHERE gb.id = ?', [req.params.id]);
+        if (!blocks.length) return res.status(404).json({ error: 'Geo block không tồn tại' });
+
+        if (req.user.role !== 'admin') {
+            const block = blocks[0];
+            if (block.is_global || (block.server_owner && block.server_owner !== req.user.id)) {
+                return res.status(403).json({ error: 'Không có quyền xóa geo block này' });
+            }
+        }
+
         await db.query('DELETE FROM geo_blocks WHERE id = ?', [req.params.id]);
         res.json({ message: 'Geo block đã xóa' });
     } catch (err) {
